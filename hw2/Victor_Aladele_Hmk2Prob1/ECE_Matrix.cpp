@@ -120,6 +120,13 @@ ECE_Matrix& ECE_Matrix::operator=(const ECE_Matrix &matrix_obj)
     return *this;
 }
 
+// subtract a scalar from matrix (scalar - matrix)
+ECE_Matrix operator-(const double &numIn, const ECE_Matrix &matrix_obj) 
+{
+    ECE_Matrix newECE_Matrix(matrix_obj);
+    return (newECE_Matrix - numIn);
+}
+
 // subtract a scalar from a matrix (matrix - scalar)
 ECE_Matrix ECE_Matrix::operator-(const double &numIn) const
 {
@@ -273,7 +280,33 @@ ECE_Matrix& ECE_Matrix::operator+=(const ECE_Matrix &matrix_obj)
     ECE_Matrix newMatrix_obj(matrix_obj);
     newECE_Matrix = newECE_Matrix.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
     newMatrix_obj = newMatrix_obj.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols)); // reshape the matrix for addition op
+
     newECE_Matrix = newECE_Matrix + matrix_obj;
+
+    nRows = std::max(nRows, matrix_obj.nRows);
+    nCols = std::max(nCols, matrix_obj.nCols);
+    matrix.resize(nRows);
+    for (int i = 0; i < nRows; i++)
+    {   
+        matrix[i].resize(nCols);
+        for (int j = 0; j < nCols; j++)
+        {
+            // Increment each matrix entry by numIn
+            matrix[i][j] = newECE_Matrix.matrix[i][j];
+        }
+    }
+    return *this;
+}
+
+// decrementing matrix by adding values of another matrix
+ECE_Matrix& ECE_Matrix::operator-=(const ECE_Matrix &matrix_obj)
+{
+    ECE_Matrix newECE_Matrix(*this); // create a copy of the lhs operand
+    ECE_Matrix newMatrix_obj(matrix_obj);
+    newECE_Matrix = newECE_Matrix.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
+    newMatrix_obj = newMatrix_obj.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols)); // reshape the matrix for addition op
+
+    newECE_Matrix = newECE_Matrix - matrix_obj;
 
     nRows = std::max(nRows, matrix_obj.nRows);
     nCols = std::max(nCols, matrix_obj.nCols);
