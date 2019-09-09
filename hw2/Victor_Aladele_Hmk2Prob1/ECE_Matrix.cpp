@@ -128,16 +128,34 @@ ECE_Matrix ECE_Matrix::operator-(const double &numIn) const
     return newECE_Matrix;
 }
 
-// add two matrix objects together
-ECE_Matrix ECE_Matrix::operator+(const ECE_Matrix &matrix_obj) const
+// reshape matrix and prep for addition or subtraction of matrices of different shapes
+ECE_Matrix ECE_Matrix::reshape_mat(int nRowIn, int nColIn)
 {
-    ECE_Matrix newECE_Matrix(*this);
+    ECE_Matrix modECE_Matrix(nRowIn, nColIn, 0);
     for (int i = 0; i < nRows; i++)
     {
         for (int j = 0; j < nCols; j++)
         {
-            // Increment each matrix entry by numIn
-            newECE_Matrix.matrix[i][j] += matrix_obj.matrix[i][j];
+            // Add the original matrix to the zero matrix
+            modECE_Matrix.matrix[i][j] += matrix[i][j];
+        }
+    }
+    return modECE_Matrix;
+}
+
+// add two matrix objects together
+ECE_Matrix ECE_Matrix::operator+(const ECE_Matrix &matrix_obj) const
+{
+    ECE_Matrix newECE_Matrix(*this);
+    ECE_Matrix newMatrix_obj(matrix_obj);
+    newECE_Matrix = newECE_Matrix.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
+    newMatrix_obj = newMatrix_obj.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
+    for (int i = 0; i < nRows; i++)
+    {
+        for (int j = 0; j < nCols; j++)
+        {
+            // Add each matrix entry to the other. 
+            newECE_Matrix.matrix[i][j] += newMatrix_obj.matrix[i][j];
         }
     }
     return newECE_Matrix;
