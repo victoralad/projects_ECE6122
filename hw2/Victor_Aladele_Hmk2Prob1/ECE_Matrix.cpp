@@ -116,7 +116,7 @@ ECE_Matrix& ECE_Matrix::operator=(const ECE_Matrix &matrix_obj)
 // subtract a scalar from a matrix (matrix - scalar)
 ECE_Matrix ECE_Matrix::operator-(const double &numIn) const
 {
-    ECE_Matrix newECE_Matrix(*this);
+    ECE_Matrix newECE_Matrix(*this); // create a copy of the lhs operand
     for (int i = 0; i < nRows; i++)
     {
         for (int j = 0; j < nCols; j++)
@@ -146,13 +146,13 @@ ECE_Matrix ECE_Matrix::reshape_mat(int nRowIn, int nColIn)
 // add two matrix objects together
 ECE_Matrix ECE_Matrix::operator+(const ECE_Matrix &matrix_obj) const
 {
-    ECE_Matrix newECE_Matrix(*this);
+    ECE_Matrix newECE_Matrix(*this); // create a copy of the lhs operand
     ECE_Matrix newMatrix_obj(matrix_obj);
-    newECE_Matrix = newECE_Matrix.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
-    newMatrix_obj = newMatrix_obj.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
-    for (int i = 0; i < nRows; i++)
+    newECE_Matrix = newECE_Matrix.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols)); // reshape the matrix for addition op
+    newMatrix_obj = newMatrix_obj.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols)); // reshape the matrix for addition op
+    for (int i = 0; i < newECE_Matrix.nRows; i++)
     {
-        for (int j = 0; j < nCols; j++)
+        for (int j = 0; j < newECE_Matrix.nCols; j++)
         {
             // Add each matrix entry to the other. 
             newECE_Matrix.matrix[i][j] += newMatrix_obj.matrix[i][j];
@@ -161,10 +161,28 @@ ECE_Matrix ECE_Matrix::operator+(const ECE_Matrix &matrix_obj) const
     return newECE_Matrix;
 }
 
-// add a scalar to a matrix (matrix + scalar)
+// subtract one matrix object from another matrix object 
+ECE_Matrix ECE_Matrix::operator-(const ECE_Matrix &matrix_obj) const
+{
+    ECE_Matrix newECE_Matrix(*this); // create a copy of the lhs operand
+    ECE_Matrix newMatrix_obj(matrix_obj);
+    newECE_Matrix = newECE_Matrix.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
+    newMatrix_obj = newMatrix_obj.reshape_mat(std::max(nRows, matrix_obj.nRows), std::max(nCols, matrix_obj.nCols));
+    for (int i = 0; i < nRows; i++)
+    {
+        for (int j = 0; j < nCols; j++)
+        {
+            // Add each matrix entry to the other. 
+            newECE_Matrix.matrix[i][j] -= newMatrix_obj.matrix[i][j];
+        }
+    }
+    return newECE_Matrix;
+}
+
+// add matrix to a scalar (matrix_obj + scalar)
 ECE_Matrix ECE_Matrix::operator+(const double &numIn) const
 {
-    ECE_Matrix newECE_Matrix(*this);
+    ECE_Matrix newECE_Matrix(*this); // create a copy of the lhs operand
     for (int i = 0; i < nRows; i++)
     {
         for (int j = 0; j < nCols; j++)
@@ -181,4 +199,62 @@ ECE_Matrix operator+(const double &numIn, const ECE_Matrix &matrix_obj)
 {
     ECE_Matrix newECE_Matrix(matrix_obj);
     return (newECE_Matrix + numIn);
+}
+
+// multiply a matrix by a scalar (scalar * matrix_obj)
+ECE_Matrix operator*(const double &numIn, const ECE_Matrix &matrix_obj) 
+{
+    ECE_Matrix newECE_Matrix(matrix_obj);
+    return (newECE_Matrix * numIn);
+}
+
+// return transpose of matrix
+ECE_Matrix ECE_Matrix::transpose() const
+{
+    ECE_Matrix newECE_Matrix(nCols, nRows, 0); // create a matrix_obj with matrix dimensions (nCols, nRows), and set all matrix entries to zero
+    for (int i = 0; i < nCols; i++)
+    {
+        for (int j = 0; j < nRows; j++)
+        {
+            // Add the original matrix to the zero matrix
+            newECE_Matrix.matrix[i][j] = matrix[j][i];
+        }
+    }
+    return newECE_Matrix;
+}
+
+// multiply a matrix by a scalar (matrix_obj * scalar)
+ECE_Matrix ECE_Matrix::operator*(const double &numIn) const
+{
+    ECE_Matrix newECE_Matrix(*this);
+    for (int i = 0; i < nRows; i++)
+    {
+        for (int j = 0; j < nCols; j++)
+        {
+            // Increment each matrix entry by numIn
+            newECE_Matrix.matrix[i][j] *= numIn;
+        }
+    }
+    return newECE_Matrix;
+}
+
+// divide a matrix by a scalar (matrix_obj / scalar)
+ECE_Matrix ECE_Matrix::operator/(const double &numIn) const
+{
+    if (numIn == 0)
+    {
+        ECE_Matrix newECE_Matrix(nCols, nRows, 0); // create a matrix_obj with matrix dimensions (nCols, nRows), and set all matrix entries to zero
+        return newECE_Matrix;
+    }
+
+    ECE_Matrix newECE_Matrix(*this);
+    for (int i = 0; i < nRows; i++)
+    {
+        for (int j = 0; j < nCols; j++)
+        {
+            // Increment each matrix entry by numIn
+            newECE_Matrix.matrix[i][j] /= numIn;
+        }
+    }
+    return newECE_Matrix;
 }

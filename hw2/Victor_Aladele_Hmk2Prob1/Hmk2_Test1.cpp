@@ -12,18 +12,17 @@ int main()
 
     // std::cout << "M3: " << std::endl << M3 << std::endl;
 
-    //Doing some simple matrix math
+    // Doing some simple matrix math
     const ECE_Matrix M4 = M1 - 5.0 + M2;
-    // const ECE_Matrix M5 = M3 - M2 + 8.0;
-    std::cout << "M4: " << std::endl << M4 << std::endl; // delete this line (this line is for debugging)
-    // const ECE_Matrix M6 = 10.0 * M1 + M2;
-    // const ECE_Matrix M7 = M3.transpose();   // Function should not Modify M3 directly
+    const ECE_Matrix M5 = M3 - M2 + 8.0;
+    const ECE_Matrix M6 = 10.0 * M1 + M2;
+    const ECE_Matrix M7 = M3.transpose();   // Function should not Modify M3 directly
     //                                         // but just return the transpose of the matrix
 
-    // const ECE_Matrix M9 = M1 * 8.0;
-    // const ECE_Matrix M10 = M1 / 8.0;        // Check for divide by zero. Set all elements equal 0 for that case
+    const ECE_Matrix M9 = M1 * 8.0;
+    const ECE_Matrix M10 = M1 / 8.0;        // Check for divide by zero. Set all elements equal 0 for that case
 
-    // ECE_Matrix M11; // Default constructor size 0 x 0
+    ECE_Matrix M11; // Default constructor size 0 x 0
     // M11 += M1;
     // ECE_Matrix M12;
     // M12 -= M1;
@@ -34,6 +33,7 @@ int main()
     // const ECE_Matrix M15 = 8.0 * M1;
     // const ECE_Matrix M17 = 8.0 + M1;
     // const ECE_Matrix M18 = 8.0 - M1;
+    std::cout << "M11: " << std::endl << M11 << std::endl; // delete this line (this line is for debugging)
 
     // std::cout << "M4: (M1 - 5.0 + M2): " << std::endl << M4 << std::endl;
     // std::cout << "M5: (M3 - M2 + 8.0) " << std::endl << M5 << std::endl;
