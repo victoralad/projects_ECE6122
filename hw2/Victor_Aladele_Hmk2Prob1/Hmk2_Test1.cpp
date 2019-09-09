@@ -23,7 +23,7 @@ int main()
     const ECE_Matrix M10 = M1 / 8.0;        // Check for divide by zero. Set all elements equal 0 for that case
 
     ECE_Matrix M11; // Default constructor size 0 x 0
-    // M11 += M1;
+    M11 += M1;
     // ECE_Matrix M12;
     // M12 -= M1;
 
