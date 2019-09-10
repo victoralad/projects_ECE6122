@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Sep 6, 2019
+Last Date Modified: Sep 10, 2019
 Description:
  finding the maximum path sum, starting at the top of a given triangle
 */
@@ -9,6 +9,8 @@ Description:
 #include <iostream>
 #include <fstream>
 #include <vector>
+
+void maxPathSum(std::vector<std::vector<int>> &triangle); // declaration of function to compute max path sum
 
 //  Function for finding maximum sum using a dynamic programming approach
 //  Function computes max sum bottom-up, with the max sum = triangle[0][0]
@@ -40,10 +42,9 @@ int main(int argc, char** argv)
     data_triangle.open(argv[1]);
     data_triangle >> triang_height;
 
-    std::vector<std::vector<int>> triangle(triang_height);
+    std::vector <std::vector<int> > triangle(triang_height, std::vector<int>(triang_height, 0));
     for (int i = 0; i < triang_height; i++)
     {
-        triangle[i].resize(i + 1);
         for (int j = 0; j < i + 1; j++)
         {
             data_triangle >> triangle[i][j]; // read in triangle data from inputed text file and save the values to 2D vector 'triangle'
@@ -51,21 +52,11 @@ int main(int argc, char** argv)
     }
     data_triangle.close();
 
-     for (int i = 0; i < triang_height; i++)
-    {
-        for (int j = 0; j < triangle[i].size(); j++)
-        {
-            std::cout << triangle[i][j] << " ";
-        }
-        std::cout << "\n";
-    }
-
     maxPathSum(triangle); // call function to compute maximum path sum
     
     std::ofstream data_max_pathSum;
     data_max_pathSum.open("output3.txt");
     data_max_pathSum << triangle[0][0]; // write maximum path sum to file named output3.txt
     data_max_pathSum.close();
-    std::cout << triangle[0][0] << std::endl;  // test.txt stored in /home/victora/Documents
     return 0;
 }
