@@ -11,9 +11,9 @@ Description:
 #include <fstream>
 #include <vector>
 
-int maxAdjProduct(std::vector <std::vector<int>> &matrix);
+int maxAdjProduct(std::vector <std::vector<int>> &matrix); //function to compute max adjacent product
 
-// function to find maxProductproduct 
+// function to find max adjacent product 
 int maxAdjProduct(std::vector <std::vector<int>> &matrix) 
 { 
     int result;
@@ -21,47 +21,44 @@ int maxAdjProduct(std::vector <std::vector<int>> &matrix)
     int nRows = matrix.size();
     int nCols = matrix[0].size();
   
-    // iterate the rows. 
+    // loop through the rows. 
     for (int i = 0; i < nRows; i++)  
     { 
-        // iterate the columns. 
+        // loop through the columns. 
         for (int j = 0; j < nCols; j++)  
         { 
-            // check the maximum product  
-            // in horizontal row. 
-            if ((j - 3) >= 0)  
+            // Check the maximum product in i-th row from right to left. 
+            // ensure that there are at least four numbers in that direction
+            if (j >= 3)  
             { 
-                result = matrix[i][j] * matrix[i][j - 1] * 
-                    matrix[i][j - 2] * matrix[i][j - 3]; 
-                  
-                if (maxProduct< result)
-                    maxProduct= result; 
+                result = matrix[i][j] * matrix[i][j - 1] * matrix[i][j - 2] * matrix[i][j - 3]; 
+                if (maxProduct < result)
+                {
+                    maxProduct = result; 
+                }
             } 
-  
-            // check the maximum product  
-            // in vertical row. 
-            if ((i - 3) >= 0)  
+            // Check the maximum product in j-th column from bottom to top. 
+            // ensure that there are at least four numbers in that direction 
+            if (i >= 3)  
             { 
-                result = matrix[i][j] * matrix[i - 1][j] * 
-                    matrix[i - 2][j] * matrix[i - 3][j]; 
-                  
-                if (maxProduct< result) 
-                    maxProduct= result; 
+                result = matrix[i][j] * matrix[i - 1][j] * matrix[i - 2][j] * matrix[i - 3][j]; 
+                if (maxProduct < result) 
+                {
+                    maxProduct = result; 
+                }
             } 
-  
-            // check the maximum product in 
-            // diagonal and anti - diagonal 
-            if ((i - 3) >= 0 && (j - 3) >= 0)  
+            // check the maximum product in the diagonal from bottom-right to top-left
+            if (i >= 3 && j >= 3)  
             { 
-                result = matrix[i][j] * matrix[i - 1][j - 1] * 
-                    matrix[i - 2][j - 2] * matrix[i - 3][j - 3]; 
+                result = matrix[i][j] * matrix[i - 1][j - 1] *  matrix[i - 2][j - 2] * matrix[i - 3][j - 3]; 
                   
-                if (maxProduct< result) 
-                    maxProduct= result; 
+                if (maxProduct < result)
+                {
+                    maxProduct = result; 
+                } 
             } 
         } 
     } 
-  
     return maxProduct; 
 } 
 
@@ -78,6 +75,7 @@ int main(int argc, char** argv)
     data_matrix.open(argv[1]);
     data_matrix >> nRows >> nCols;
 
+    // create 2D vector to hold all the values from from the input data file. Initialize all vector entries to zero
     std::vector <std::vector<int>> matrix(nRows, std::vector<int>(nCols, 0));
     for (int i = 0; i < nRows; i++)
     {
@@ -88,19 +86,11 @@ int main(int argc, char** argv)
     }
     data_matrix.close();
 
-    for (int i = 0; i < nRows; i++)
-    {
-        for (int j = 0; j < nCols; j++)
-        {
-            std::cout << matrix[i][j] << " ";
-        }
-        std::cout << "\n";
-    }
+    int maxProduct = maxAdjProduct(matrix); // call function to compute maximum adjacent product
 
-    int maxProduct = maxAdjProduct(matrix);
     std::ofstream data_max_product;
     data_max_product.open("output2.txt");
-    data_max_product << maxProduct;
+    data_max_product << maxProduct; // write maximum adjacent product to file named output3.txt
     data_max_product.close();
 
 
