@@ -51,7 +51,15 @@ int maxAdjProduct(std::vector <std::vector<int>> &matrix)
             if (i >= 3 && j >= 3)  
             { 
                 result = matrix[i][j] * matrix[i - 1][j - 1] *  matrix[i - 2][j - 2] * matrix[i - 3][j - 3]; 
-                  
+                if (maxProduct < result)
+                {
+                    maxProduct = result; 
+                } 
+            } 
+            // check the maximum product in the anti-diagonal from bottom-left to top-right
+            if (i >= 3 && j == (nRows - i - 1))  
+            { 
+                result = matrix[i][j] * matrix[i - 1][j + 1] *  matrix[i - 2][j + 2] * matrix[i - 3][j + 3]; 
                 if (maxProduct < result)
                 {
                     maxProduct = result; 
