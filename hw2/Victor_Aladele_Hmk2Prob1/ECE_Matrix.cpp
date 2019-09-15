@@ -67,7 +67,7 @@ ECE_Matrix::ECE_Matrix(int nRowsIn, int nColsIn, double matEntry)
 ECE_Matrix::ECE_Matrix(std::string input_file)
 {
     std::ifstream data_matrix;
-    data_matrix.open(input_file); // open text file
+    data_matrix.open(input_file.c_str()); // open text file
     data_matrix >> nRows >> nCols;
 
     matrix.resize(nRows);

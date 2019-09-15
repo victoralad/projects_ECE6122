@@ -18,7 +18,7 @@ Description:
 class ECE_Matrix
 {
     int nRows, nCols; // declare the dimensions of the matrix
-    std::vector<std::vector<double>> matrix; // declare the matrix as a two dimensional vector
+    std::vector<std::vector<double> > matrix; // declare the matrix as a two dimensional vector
 public:
     ECE_Matrix(); // default constructor
     ECE_Matrix(const ECE_Matrix &matrix_obj); // copy constructor (compiler has the ability to implicitly create this copy constructor if needed)

@@ -10,11 +10,11 @@ Description:
 #include <fstream>
 #include <vector>
 
-void maxPathSum(std::vector<std::vector<int>> &triangle); // declaration of function to compute max path sum
+void maxPathSum(std::vector<std::vector<int> > &triangle); // declaration of function to compute max path sum
 
 //  Function for finding maximum sum using a dynamic programming approach
 //  Function computes max sum bottom-up, with the max sum = triangle[0][0]
-void maxPathSum(std::vector<std::vector<int>> &triangle) 
+void maxPathSum(std::vector<std::vector<int> > &triangle) 
 { 
      // loop for moving from bottom to the top of the triangle
      for (int i = triangle.size() - 1; i > 0; i--) 
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     data_triangle >> triang_height;
 
     // create 2D vector to hold all the values from from the input data file. Initialize all vector entries to zero
-    std::vector <std::vector<int>> triangle(triang_height, std::vector<int>(triang_height, 0));
+    std::vector <std::vector<int> > triangle(triang_height, std::vector<int>(triang_height, 0));
     for (int i = 0; i < triang_height; i++)
     {
         for (int j = 0; j < i + 1; j++)

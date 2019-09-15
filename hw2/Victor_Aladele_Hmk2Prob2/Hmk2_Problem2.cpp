@@ -11,10 +11,10 @@ Description:
 #include <fstream>
 #include <vector>
 
-int maxAdjProduct(std::vector <std::vector<int>> &matrix); //function to compute max adjacent product
+int maxAdjProduct(std::vector <std::vector<int> > &matrix); //function to compute max adjacent product
 
 // function to find max adjacent product 
-int maxAdjProduct(std::vector <std::vector<int>> &matrix) 
+int maxAdjProduct(std::vector <std::vector<int> > &matrix) 
 { 
     int result;
     int maxProduct = 0; 
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     data_matrix >> nRows >> nCols;
 
     // create 2D vector to hold all the values from from the input data file. Initialize all vector entries to zero
-    std::vector <std::vector<int>> matrix(nRows, std::vector<int>(nCols, 0));
+    std::vector <std::vector<int> > matrix(nRows, std::vector<int>(nCols, 0));
     for (int i = 0; i < nRows; i++)
     {
         for (int j = 0; j < nCols; j++)
