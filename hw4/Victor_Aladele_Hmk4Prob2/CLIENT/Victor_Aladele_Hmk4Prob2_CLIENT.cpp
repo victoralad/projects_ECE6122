@@ -13,6 +13,7 @@ Description:
 #include <string.h>
 #include <sys/types.h> 
 #include <iostream>
+#include <thread>
 
 /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
 #include <sys/socket.h>
@@ -21,6 +22,12 @@ Description:
 #include <unistd.h> /* Needed for close() */
 
 typedef int SOCKET;
+char buffer[1024];
+int sockfd, portno, n;
+struct sockaddr_in serv_addr;
+struct hostent *server;
+socklen_t fromlen = 0;
+struct sockaddr  from;
 
 /* Note: For POSIX, typedef SOCKET as an int. */
 
@@ -45,18 +52,31 @@ void error(const char *msg)
     exit(0);
 }
 
+void rec_msgs()
+{
+    while (true) 
+    {
+        n = recvfrom(sockfd, buffer, 1023, 0, (sockaddr *)&from, &fromlen);
+        
+        if (n < 0)
+        {
+            error("ERROR reading from socket");
+        }
+        buffer[n] = 0;
+        printf("\nReceived Msg Type: %s", buffer);
+        // std::cout << "Please: " << std::endl;
+        printf("Please enter command: \n");
+        // std::cout << std::flush;
+
+    }
+}
+
 int main(int argc, char *argv[])
 {
-    int sockfd, portno, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
-
-    socklen_t fromlen = 0;
-    struct sockaddr  from;
     memset((char *)&from, 0, sizeof(sockaddr));
 
-    char buffer[1024];
-    if (argc < 3) {
+    if (argc < 3) 
+    {
         fprintf(stderr, "usage %s hostname port\n", argv[0]);
         exit(0);
     }
@@ -66,7 +86,9 @@ int main(int argc, char *argv[])
     // Create socket
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0)
+    {
         error("ERROR opening socket");
+    }
 
     server = gethostbyname(argv[1]);
 
@@ -85,6 +107,10 @@ int main(int argc, char *argv[])
 
     serv_addr.sin_port = htons(portno);
 
+    fromlen = sizeof(serv_addr);
+
+    std::thread t1(rec_msgs);
+    
     while (true)
     {
         printf("Please enter command: ");
@@ -94,6 +120,7 @@ int main(int argc, char *argv[])
 
         if (buffer[0] == 'q')
         {
+            t1.join();
             break;
         }
 
@@ -106,22 +133,9 @@ int main(int argc, char *argv[])
 
         memset(buffer, 0, 1024);
 
-        fromlen = sizeof(serv_addr);
-        n = recvfrom(sockfd, buffer, 1024, 0, (sockaddr *)&from, &fromlen);
-        
-        if (n < 0)
-        {
-            error("ERROR reading from socket");
-        }
-        else
-        {
-            buffer[n] = 0;
-        }
-        printf("Received Msg Type: %s\n", buffer);
     }
 
     sockClose(sockfd);
-
 
     return 0;
 }

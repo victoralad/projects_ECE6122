@@ -23,7 +23,7 @@ Description:
 
 typedef int SOCKET;
 char buffer[1024];
-int sockfd, portno, n, command;
+int sockfd, portno, n, command = -1;
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
 
@@ -62,7 +62,18 @@ void error(const char *msg)
 }
 
 /////////////////////////////////////////////////
-// Output error message and exit
+// send messages if command == 0
+void send_msgs()
+{
+    n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, fromlen);
+    if (n < 0)
+    {
+        printf("There is no message to send. Buffer is empty.\n");
+    }
+}
+
+/////////////////////////////////////////////////
+// thread always running and waiting to receive messages
 void rec_msgs() 
 {
     while (true) 
@@ -73,13 +84,7 @@ void rec_msgs()
             error("recvfrom");
         }
         buffer[n] = 0;  // Null terminate
-        n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, fromlen);
-        if (n < 0)
-        {
-            error("sendto");
-        }
     }
-
 }
 /////////////////////////////////////////////////
 // Main
@@ -95,7 +100,9 @@ int main(int argc, char *argv[])
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     // Make sure the socket was created
     if (sockfd < 0)
+    {
         error("ERROR opening socket");
+    }
     // Zero out the variable serv_addr
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
     // Convert the port number string to an int
@@ -124,13 +131,13 @@ int main(int argc, char *argv[])
 
         if (command == 0) 
         {
-            memset(buffer, 0, 1024);
+            send_msgs();
         }
         else if (command == 1) 
         {
             memset(buffer, 0, 1024);
         }
-        else 
+        else if (command == 2) 
         {
             printf("Composite Msg: %s\n", buffer);
         }
