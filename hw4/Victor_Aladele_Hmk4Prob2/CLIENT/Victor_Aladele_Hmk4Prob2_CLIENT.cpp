@@ -8,16 +8,13 @@ Description:
     The port number is passed as an argument 
 */
 
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h> 
 #include <iostream>
 
-
-   /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
+/* Assume that any non-Windows platform uses POSIX-style sockets instead. */
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>  /* Needed for getaddrinfo() and freeaddrinfo() */
@@ -25,12 +22,10 @@ Description:
 
 typedef int SOCKET;
 
-
 /* Note: For POSIX, typedef SOCKET as an int. */
 
 int sockClose(SOCKET sock)
 {
-
     int status = 0;
 
     status = shutdown(sock, SHUT_RDWR);
@@ -60,7 +55,6 @@ int main(int argc, char *argv[])
     struct sockaddr  from;
     memset((char *)&from, 0, sizeof(sockaddr));
 
-
     char buffer[1024];
     if (argc < 3) {
         fprintf(stderr, "usage %s hostname port\n", argv[0]);
@@ -81,6 +75,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "ERROR, no such host\n");
         exit(0);
     }
+    
     // Zero out serv_addr variable
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
     
@@ -90,9 +85,6 @@ int main(int argc, char *argv[])
 
     serv_addr.sin_port = htons(portno);
 
-//    if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-//       error("ERROR connecting");
-
     while (true)
     {
         printf("Please enter command: ");
@@ -100,23 +92,32 @@ int main(int argc, char *argv[])
         memset(buffer, 0, 1024);
         fgets(buffer, 1023, stdin);
 
+        if (buffer[0] == 'q')
+        {
+            break;
+        }
+
         n = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
         if (n < 0)
+        {
             error("ERROR writing to socket");
+        }
 
         memset(buffer, 0, 1024);
 
- //       n = recv(sockfd, buffer, 1023, 0);
         fromlen = sizeof(serv_addr);
         n = recvfrom(sockfd, buffer, 1024, 0, (sockaddr *)&from, &fromlen);
-
+        
         if (n < 0)
+        {
             error("ERROR reading from socket");
+        }
         else
+        {
             buffer[n] = 0;
-
-        printf("%s\n", buffer);
+        }
+        printf("Received Msg Type: %s\n", buffer);
     }
 
     sockClose(sockfd);

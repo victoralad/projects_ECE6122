@@ -13,7 +13,7 @@ Description:
 #include <string.h>
 #include <sys/types.h> 
 #include <iostream>
-
+#include <thread>
 
 /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
 #include <sys/socket.h>
@@ -22,6 +22,20 @@ Description:
 #include <unistd.h> /* Needed for close() */
 
 typedef int SOCKET;
+char buffer[1024];
+int sockfd, portno, n, command;
+socklen_t fromlen;
+struct sockaddr_in serv_addr, from;
+
+
+struct udpMessage
+{
+    unsigned char nVersion;
+    unsigned char nType;
+    unsigned short nMsgLen;
+    unsigned long lSeqNum;
+    char chMsg[1000];
+};
 
 /////////////////////////////////////////////////
 // Cross-platform socket close
@@ -46,16 +60,32 @@ void error(const char *msg)
     // Make sure any open sockets are closed before calling exit
     exit(1);
 }
+
+/////////////////////////////////////////////////
+// Output error message and exit
+void rec_msgs() 
+{
+    while (true) 
+    {
+        n = recvfrom(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, &fromlen);
+        if (n < 0)
+        {
+            error("recvfrom");
+        }
+        buffer[n] = 0;  // Null terminate
+        n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, fromlen);
+        if (n < 0)
+        {
+            error("sendto");
+        }
+    }
+
+}
 /////////////////////////////////////////////////
 // Main
 int main(int argc, char *argv[])
 {
-    int sockfd, newsockfd, portno;
-    socklen_t fromlen;
-    char buffer[1024];
-    struct sockaddr_in serv_addr, from;
-    int n;
-
+    
     if (argc < 2)
     {
         fprintf(stderr, "ERROR, no port provided\n");
@@ -81,22 +111,31 @@ int main(int argc, char *argv[])
     {
         error("ERROR on binding");
     }
-    printf("Waiting on messages...\n");
 
     fromlen = sizeof(struct sockaddr_in);
+
+    std::thread handleClients(rec_msgs);
+
     while (true)
     {
-        n = recvfrom(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, &fromlen);
-        if (n < 0)
-            error("recvfrom");
-        buffer[n] = 0;  // Null terminate
-        printf("Received a datagram: %s", buffer);
-        n = sendto(sockfd, "Got your message\n", 17, 0, (struct sockaddr *)&from, fromlen);
-        if (n < 0)
-            error("sendto");
+        printf("Please enter command: ");
+
+        std::cin >> command;
+
+        if (command == 0) 
+        {
+            memset(buffer, 0, 1024);
+        }
+        else if (command == 1) 
+        {
+            memset(buffer, 0, 1024);
+        }
+        else 
+        {
+            printf("Composite Msg: %s\n", buffer);
+        }
     }
 
-    sockClose(newsockfd);
     sockClose(sockfd);
 
 
