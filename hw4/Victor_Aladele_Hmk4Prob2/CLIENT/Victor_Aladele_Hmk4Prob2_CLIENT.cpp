@@ -56,17 +56,16 @@ void rec_msgs()
 {
     while (true) 
     {
-        n = recvfrom(sockfd, buffer, 1023, 0, (sockaddr *)&from, &fromlen);
-        
+        n = recvfrom(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, &fromlen);
+
         if (n < 0)
         {
             error("ERROR reading from socket");
         }
         buffer[n] = 0;
-        printf("\nReceived Msg Type: %s", buffer);
-        // std::cout << "Please: " << std::endl;
-        printf("Please enter command: \n");
-        // std::cout << std::flush;
+        std::cout << "\nReceived Msg Type: " << buffer << std::endl;
+        printf("Please enter command: ");
+        std::cout << std::flush;
 
     }
 }
