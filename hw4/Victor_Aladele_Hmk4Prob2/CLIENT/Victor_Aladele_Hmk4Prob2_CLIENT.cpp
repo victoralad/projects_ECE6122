@@ -27,7 +27,6 @@ int sockfd, portno, n;
 struct sockaddr_in serv_addr;
 struct hostent *server;
 socklen_t fromlen = 0;
-struct sockaddr  from;
 
 /* Note: For POSIX, typedef SOCKET as an int. */
 
@@ -56,8 +55,8 @@ void rec_msgs()
 {
     while (true) 
     {
-        n = recvfrom(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, &fromlen);
-
+        n = recv(sockfd, buffer, 1023, 0);
+        // std::cout << "server portno: " << ntohs(serv_addr.sin_port) << std::endl;
         if (n < 0)
         {
             error("ERROR reading from socket");
@@ -72,8 +71,6 @@ void rec_msgs()
 
 int main(int argc, char *argv[])
 {
-    memset((char *)&from, 0, sizeof(sockaddr));
-
     if (argc < 3) 
     {
         fprintf(stderr, "usage %s hostname port\n", argv[0]);
@@ -105,8 +102,6 @@ int main(int argc, char *argv[])
     memmove((char *)&serv_addr.sin_addr.s_addr, (char *)server->h_addr, server->h_length);
 
     serv_addr.sin_port = htons(portno);
-
-    fromlen = sizeof(serv_addr);
 
     std::thread t1(rec_msgs);
     

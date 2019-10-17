@@ -14,6 +14,7 @@ Description:
 #include <sys/types.h> 
 #include <iostream>
 #include <thread>
+#include <vector>
 
 /* Assume that any non-Windows platform uses POSIX-style sockets instead. */
 #include <sys/socket.h>
@@ -26,6 +27,7 @@ char buffer[1024];
 int sockfd, portno, n, command = -1;
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
+std::vector<sockaddr_in> client;
 
 
 struct udpMessage
@@ -34,7 +36,7 @@ struct udpMessage
     unsigned char nType;
     unsigned short nMsgLen;
     unsigned long lSeqNum;
-    char chMsg[1000];
+    char chMsg[1024];
 };
 
 /////////////////////////////////////////////////
@@ -70,6 +72,7 @@ void send_msgs()
     {
         printf("There is no message to send. Buffer is empty.\n");
     }
+    std::cout << "number of clients: " << client.size() << std::endl;
 }
 
 /////////////////////////////////////////////////
@@ -79,11 +82,21 @@ void rec_msgs()
     while (true) 
     {
         n = recvfrom(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, &fromlen);
+        
         if (n < 0)
         {
             error("recvfrom");
         }
         buffer[n] = 0;  // Null terminate
+
+        if (client.size() < 1)
+        {
+            client.push_back(from);
+        }
+        else if (client[client.size() - 1].sin_addr.s_addr != from.sin_addr.s_addr || client[client.size() - 1].sin_port != from.sin_port)
+        {
+            client.push_back(from);
+        }
     }
 }
 /////////////////////////////////////////////////
