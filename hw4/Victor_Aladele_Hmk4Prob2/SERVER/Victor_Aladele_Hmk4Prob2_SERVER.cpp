@@ -68,10 +68,13 @@ void error(const char *msg)
 // send messages if command == 0
 void send_msgs()
 {
-    n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, fromlen);
-    if (n < 0)
+    for (int i = 0; i < client.size(); ++i)
     {
-        printf("There is no message to send. Buffer is empty.\n");
+        n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&client[i], fromlen);
+        if (n < 0)
+        {
+            printf("There is no message to send. Buffer is empty.\n");
+        }
     }
 }
 
