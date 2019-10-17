@@ -28,6 +28,7 @@ int sockfd, portno, n, command = -1;
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
 std::vector<sockaddr_in> client;
+bool port_used = false;
 
 
 struct udpMessage
@@ -72,7 +73,6 @@ void send_msgs()
     {
         printf("There is no message to send. Buffer is empty.\n");
     }
-    std::cout << "number of clients: " << client.size() << std::endl;
 }
 
 /////////////////////////////////////////////////
@@ -88,14 +88,25 @@ void rec_msgs()
             error("recvfrom");
         }
         buffer[n] = 0;  // Null terminate
-
+        
         if (client.size() < 1)
         {
             client.push_back(from);
         }
-        else if (client[client.size() - 1].sin_addr.s_addr != from.sin_addr.s_addr || client[client.size() - 1].sin_port != from.sin_port)
+        else
         {
-            client.push_back(from);
+            for (int i = 0; i < client.size(); ++i)
+            {
+                if (client[i].sin_addr.s_addr == from.sin_addr.s_addr && client[i].sin_port == from.sin_port)
+                {
+                    port_used = true;
+                    break;
+                }
+            }
+            if (port_used == false) 
+            {
+               client.push_back(from); 
+            }
         }
     }
 }
