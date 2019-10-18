@@ -22,7 +22,7 @@ Description:
 #include <unistd.h> /* Needed for close() */
 
 typedef int SOCKET;
-char buffer[1024];
+char buffer[1000];
 int sockfd, portno, n;
 struct sockaddr_in serv_addr;
 struct hostent *server;
@@ -35,8 +35,8 @@ struct udpMessage
     unsigned char nType;
     unsigned short nMsgLen;
     unsigned long lSeqNum;
-    char chMsg[1024];
-};
+    char chMsg[1000];
+}udpMsg;
 
 /* Note: For POSIX, typedef SOCKET as an int. */
 
@@ -66,7 +66,7 @@ void rec_msgs()
     while (true) 
     {
 
-        n = recv(sockfd, buffer, 1023, 0);
+        n = recv(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0);
         if (n < 0)
         {
             error("ERROR reading from socket");
@@ -74,11 +74,9 @@ void rec_msgs()
 
         if (dont_quit)
         {
-            buffer[n] = 0;
-            std::cout << "\nReceived Msg Type: " << buffer << std::endl;
+            std::cout << "\nReceived Msg Type: " << udpMsg.chMsg << std::endl;
             printf("Please enter command: ");
             std::cout << std::flush;
-            memset(buffer, 0, 1024);
         }
         else
         {
@@ -96,7 +94,7 @@ void isValidInput()
             // switch (buffer[index] )
             printf("Please use the right format for input arguments\n");
             printf("Please enter command: ");
-            fgets(buffer, 1023, stdin);
+            fgets(buffer, 1000, stdin);
         }
 
         else if (buffer[0] == 'q')
@@ -108,7 +106,7 @@ void isValidInput()
         {
             printf("Wrong format!!! Input format: t type lseqNum msg \n");
             printf("Please enter command: ");
-            fgets(buffer, 1023, stdin);
+            fgets(buffer, 1000, stdin);
         }
 
         else 
@@ -155,19 +153,18 @@ int main(int argc, char *argv[])
     std::thread t1(rec_msgs);
 
     // Initialize udpMessage struct
-    udpMessage udpMsg;
     udpMsg.nVersion = '0';
     udpMsg.nType = '0';
     udpMsg.nMsgLen = 0;
     udpMsg.lSeqNum = 0;
-    memset(udpMsg.chMsg, 0, 1024);
+    memset(udpMsg.chMsg, 0, 1000);
 
     while (true)
     {
         printf("Please enter command: ");
 
-        memset(buffer, 0, 1024);
-        fgets(buffer, 1023, stdin);
+        memset(buffer, 0, 1000);
+        fgets(buffer, 1000, stdin);
 
         isValidInput();
 
@@ -187,9 +184,8 @@ int main(int argc, char *argv[])
         {
             udpMsg.nType = buffer[2];
             udpMsg.lSeqNum = buffer[4];
-            //memcpy(udpMsg.chMsg, buffer, sizeof(buffer));
-            // n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-            n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+            memcpy(udpMsg.chMsg, buffer + 6, sizeof(buffer) - 6);
+            n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
             if (n < 0)
             {

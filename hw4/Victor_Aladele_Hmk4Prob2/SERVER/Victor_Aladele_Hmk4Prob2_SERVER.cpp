@@ -23,8 +23,8 @@ Description:
 #include <unistd.h> /* Needed for close() */
 
 typedef int SOCKET;
-char buffer[1024];
-int sockfd, portno, n, command = -1;
+char buffer[1000], command;
+int sockfd, portno, n; 
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
 std::vector<sockaddr_in> client;
@@ -37,8 +37,8 @@ struct udpMessage
     unsigned char nType;
     unsigned short nMsgLen;
     unsigned long lSeqNum;
-    char chMsg[1024];
-};
+    char chMsg[1000];
+}udpMsg;
 
 /////////////////////////////////////////////////
 // Cross-platform socket close
@@ -70,7 +70,7 @@ void send_msgs()
 {
     for (int i = 0; i < client.size(); ++i)
     {
-        n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&client[i], fromlen);
+        n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&client[i], fromlen);
         if (n < 0)
         {
             printf("There is no message to send. Buffer is empty.\n");
@@ -84,12 +84,11 @@ void rec_msgs()
 {
     while (true) 
     {
-        n = recvfrom(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, &fromlen);
+        n = recvfrom(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&from, &fromlen);
         if (n < 0)
         {
             error("recvfrom");
         }
-        buffer[n] = 0;  // Null terminate
         
         if (client.size() < 1)
         {
@@ -149,29 +148,31 @@ int main(int argc, char *argv[])
 
     std::thread handleClients(rec_msgs);
 
+    // Initialize udpMessage struct
+    udpMsg.nVersion = '0';
+    udpMsg.nType = '0';
+    udpMsg.nMsgLen = 0;
+    udpMsg.lSeqNum = 0;
+    memset(udpMsg.chMsg, 0, 1000);
+
     while (true)
     {
         printf("Please enter command: ");
 
         std::cin >> command;
 
-        while (command != 0 && command != 1 && command != 2)
+        if (command == '0') 
         {
-            printf("Please enter command: ");
-            std::cin >> command;
-        }
-
-        if (command == 0) 
-        {
+            // std::cout << "chMsg: " << udpMsg.nType << std::endl;
             send_msgs();
         }
-        else if (command == 1) 
+        else if (command == '1') 
         {
-            memset(buffer, 0, 1024);
+            memset(udpMsg.chMsg, 0, 1000);
         }
-        else if (command == 2) 
+        else if (command == '2') 
         {
-            printf("Composite Msg: %s\n", buffer);
+            printf("Composite Msg: %s\n", udpMsg.chMsg);
         }
         
     }
