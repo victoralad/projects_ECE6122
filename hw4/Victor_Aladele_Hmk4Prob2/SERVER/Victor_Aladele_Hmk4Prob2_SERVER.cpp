@@ -23,7 +23,7 @@ Description:
 #include <unistd.h> /* Needed for close() */
 
 typedef int SOCKET;
-char buffer[1000], command;
+char command;
 int sockfd, portno, n; 
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
@@ -38,7 +38,7 @@ struct udpMessage
     unsigned short nMsgLen;
     unsigned long lSeqNum;
     char chMsg[1000];
-}udpMsg;
+}udpMsg, udpMsg_recv;
 
 /////////////////////////////////////////////////
 // Cross-platform socket close
@@ -68,8 +68,13 @@ void error(const char *msg)
 // send messages if command == 0
 void send_msgs()
 {
+    if (udpMsg.nVersion != '1')
+    {
+        return;
+    }
     for (int i = 0; i < client.size(); ++i)
     {
+        
         n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&client[i], fromlen);
         if (n < 0)
         {
@@ -84,12 +89,13 @@ void rec_msgs()
 {
     while (true) 
     {
-        n = recvfrom(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&from, &fromlen);
+        n = recvfrom(sockfd, (char*)&udpMsg_recv, sizeof(udpMessage), 0, (struct sockaddr *)&from, &fromlen);
         if (n < 0)
         {
             error("recvfrom");
         }
         
+        // check if this is the first client that is connecting
         if (client.size() < 1)
         {
             client.push_back(from);
@@ -98,6 +104,7 @@ void rec_msgs()
         {
             for (int i = 0; i < client.size(); ++i)
             {
+                // check if server has received messages from this client before. 
                 if (client[i].sin_addr.s_addr == from.sin_addr.s_addr && client[i].sin_port == from.sin_port)
                 {
                     port_used = true;
@@ -108,6 +115,11 @@ void rec_msgs()
             {
                client.push_back(from); 
             }
+        }
+        // check if the version number of the incoming message is valid
+        if (udpMsg_recv.nVersion == '1')
+        {
+            memcpy(&udpMsg, &udpMsg_recv, sizeof(udpMessage));
         }
     }
 }
