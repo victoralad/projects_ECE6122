@@ -156,6 +156,12 @@ int main(int argc, char *argv[])
 
         std::cin >> command;
 
+        while (command != 0 && command != 1 && command != 2)
+        {
+            printf("Please enter command: ");
+            std::cin >> command;
+        }
+
         if (command == 0) 
         {
             send_msgs();
@@ -168,6 +174,7 @@ int main(int argc, char *argv[])
         {
             printf("Composite Msg: %s\n", buffer);
         }
+        
     }
 
     sockClose(sockfd);

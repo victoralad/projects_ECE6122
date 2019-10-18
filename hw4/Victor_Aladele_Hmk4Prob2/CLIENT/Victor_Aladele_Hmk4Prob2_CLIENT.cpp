@@ -27,7 +27,7 @@ int sockfd, portno, n;
 struct sockaddr_in serv_addr;
 struct hostent *server;
 socklen_t fromlen = 0;
-bool dont_quit = true;
+bool dont_quit = true, invalid_input = true;;
 
 /* Note: For POSIX, typedef SOCKET as an int. */
 
@@ -54,8 +54,9 @@ void error(const char *msg)
 
 void rec_msgs()
 {
-    while (dont_quit) 
+    while (true) 
     {
+
         n = recv(sockfd, buffer, 1023, 0);
         if (n < 0)
         {
@@ -64,17 +65,16 @@ void rec_msgs()
 
         if (dont_quit)
         {
-            break;
-        }
-        else
-        {
             buffer[n] = 0;
             std::cout << "\nReceived Msg Type: " << buffer << std::endl;
             printf("Please enter command: ");
             std::cout << std::flush;
             memset(buffer, 0, 1024);
         }
-        
+        else
+        {
+            break;
+        }
     }
 }
 
@@ -114,10 +114,8 @@ int main(int argc, char *argv[])
 
     std::thread t1(rec_msgs);
 
-    bool invalid_input = true;
-
-    int index;
     
+
     while (true)
     {
         printf("Please enter command: ");
@@ -142,7 +140,7 @@ int main(int argc, char *argv[])
         
             else if ((buffer[0] == 't') && (buffer[3] != ' '))
             {
-                printf("Please enter the sequence number, followed by space, then the message\n");
+                printf("Please enter the integer sequence number, followed by space, then the message\n");
                 printf("Please enter command: ");
                 fgets(buffer, 1023, stdin);
             }
@@ -155,11 +153,9 @@ int main(int argc, char *argv[])
 
         if (buffer[0] == 'q')
         {
-            // std::cout << "yooo";
             dont_quit = false;
             sockClose(sockfd);
             t1.join();
-            std::cout << "\n";
             return 0;
         }
         else
@@ -171,13 +167,9 @@ int main(int argc, char *argv[])
                 error("ERROR writing to socket");
             }
         }
-        
-        
+        invalid_input = true;        
 
     }
     
-    // t1.join();
-    // sockClose(sockfd);
-
     return 0;
 }
