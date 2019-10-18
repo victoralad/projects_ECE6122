@@ -27,7 +27,16 @@ int sockfd, portno, n;
 struct sockaddr_in serv_addr;
 struct hostent *server;
 socklen_t fromlen = 0;
-bool dont_quit = true, invalid_input = true;;
+bool dont_quit = true, invalid_input = true;
+
+struct udpMessage
+{
+    unsigned char nVersion;
+    unsigned char nType;
+    unsigned short nMsgLen;
+    unsigned long lSeqNum;
+    char chMsg[1024];
+};
 
 /* Note: For POSIX, typedef SOCKET as an int. */
 
@@ -78,6 +87,37 @@ void rec_msgs()
     }
 }
 
+void isValidInput()
+{
+    while (invalid_input) 
+    {
+        if ((buffer[1] != ' ') || (buffer[0] != 'q' && buffer[0] != 't' && buffer[0] != 'v'))
+        {
+            // switch (buffer[index] )
+            printf("Please use the right format for input arguments\n");
+            printf("Please enter command: ");
+            fgets(buffer, 1023, stdin);
+        }
+
+        else if (buffer[0] == 'q')
+        {
+            invalid_input = false;
+        }
+
+        else if (buffer[0] == 't' && buffer[3] != ' ' && buffer[5] != ' ')
+        {
+            printf("Wrong format!!! Input format: t type lseqNum msg \n");
+            printf("Please enter command: ");
+            fgets(buffer, 1023, stdin);
+        }
+
+        else 
+        {
+            invalid_input = false;
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 3) 
@@ -114,7 +154,13 @@ int main(int argc, char *argv[])
 
     std::thread t1(rec_msgs);
 
-    
+    // Initialize udpMessage struct
+    udpMessage udpMsg;
+    udpMsg.nVersion = '0';
+    udpMsg.nType = '0';
+    udpMsg.nMsgLen = 0;
+    udpMsg.lSeqNum = 0;
+    memset(udpMsg.chMsg, 0, 1024);
 
     while (true)
     {
@@ -123,33 +169,7 @@ int main(int argc, char *argv[])
         memset(buffer, 0, 1024);
         fgets(buffer, 1023, stdin);
 
-        while (invalid_input) 
-        {
-            if ((buffer[1] != ' ') || (buffer[0] != 'q' && buffer[0] != 't' && buffer[0] != 'v'))
-            {
-                // switch (buffer[index] )
-                printf("Please use the right format for input arguments\n");
-                printf("Please enter command: ");
-                fgets(buffer, 1023, stdin);
-            }
-
-            else if (buffer[0] == 'q')
-            {
-                invalid_input = false;
-            }
-        
-            else if ((buffer[0] == 't') && (buffer[3] != ' '))
-            {
-                printf("Please enter the integer sequence number, followed by space, then the message\n");
-                printf("Please enter command: ");
-                fgets(buffer, 1023, stdin);
-            }
-
-            else 
-            {
-                invalid_input = false;
-            }
-        }
+        isValidInput();
 
         if (buffer[0] == 'q')
         {
@@ -158,9 +178,18 @@ int main(int argc, char *argv[])
             t1.join();
             return 0;
         }
+        else if (buffer[0] == 'v')
+        {
+            udpMsg.nVersion = buffer[2];
+        }
+        
         else
         {
-            n = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+            udpMsg.nType = buffer[2];
+            udpMsg.lSeqNum = buffer[4];
+            //memcpy(udpMsg.chMsg, buffer, sizeof(buffer));
+            // n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+            n = sendto(sockfd, buffer, 1023, 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
             if (n < 0)
             {

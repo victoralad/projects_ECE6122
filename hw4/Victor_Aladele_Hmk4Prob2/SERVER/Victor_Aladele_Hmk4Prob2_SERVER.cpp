@@ -85,7 +85,6 @@ void rec_msgs()
     while (true) 
     {
         n = recvfrom(sockfd, buffer, 1023, 0, (struct sockaddr *)&from, &fromlen);
-        
         if (n < 0)
         {
             error("recvfrom");
