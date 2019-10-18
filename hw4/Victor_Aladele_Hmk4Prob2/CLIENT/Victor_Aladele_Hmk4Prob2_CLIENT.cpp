@@ -27,6 +27,7 @@ int sockfd, portno, n;
 struct sockaddr_in serv_addr;
 struct hostent *server;
 socklen_t fromlen = 0;
+bool dont_quit = true;
 
 /* Note: For POSIX, typedef SOCKET as an int. */
 
@@ -53,19 +54,27 @@ void error(const char *msg)
 
 void rec_msgs()
 {
-    while (true) 
+    while (dont_quit) 
     {
         n = recv(sockfd, buffer, 1023, 0);
-        // std::cout << "server portno: " << ntohs(serv_addr.sin_port) << std::endl;
         if (n < 0)
         {
             error("ERROR reading from socket");
         }
-        buffer[n] = 0;
-        std::cout << "\nReceived Msg Type: " << buffer << std::endl;
-        printf("Please enter command: ");
-        std::cout << std::flush;
 
+        if (dont_quit)
+        {
+            break;
+        }
+        else
+        {
+            buffer[n] = 0;
+            std::cout << "\nReceived Msg Type: " << buffer << std::endl;
+            printf("Please enter command: ");
+            std::cout << std::flush;
+            memset(buffer, 0, 1024);
+        }
+        
     }
 }
 
@@ -104,6 +113,10 @@ int main(int argc, char *argv[])
     serv_addr.sin_port = htons(portno);
 
     std::thread t1(rec_msgs);
+
+    bool invalid_input = true;
+
+    int index;
     
     while (true)
     {
@@ -112,24 +125,59 @@ int main(int argc, char *argv[])
         memset(buffer, 0, 1024);
         fgets(buffer, 1023, stdin);
 
+        while (invalid_input) 
+        {
+            if ((buffer[1] != ' ') || (buffer[0] != 'q' && buffer[0] != 't' && buffer[0] != 'v'))
+            {
+                // switch (buffer[index] )
+                printf("Please use the right format for input arguments\n");
+                printf("Please enter command: ");
+                fgets(buffer, 1023, stdin);
+            }
+
+            else if (buffer[0] == 'q')
+            {
+                invalid_input = false;
+            }
+        
+            else if ((buffer[0] == 't') && (buffer[3] != ' '))
+            {
+                printf("Please enter the sequence number, followed by space, then the message\n");
+                printf("Please enter command: ");
+                fgets(buffer, 1023, stdin);
+            }
+
+            else 
+            {
+                invalid_input = false;
+            }
+        }
+
         if (buffer[0] == 'q')
         {
+            // std::cout << "yooo";
+            dont_quit = false;
+            sockClose(sockfd);
             t1.join();
-            break;
+            std::cout << "\n";
+            return 0;
         }
-
-        n = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
-
-        if (n < 0)
+        else
         {
-            error("ERROR writing to socket");
-        }
+            n = sendto(sockfd, buffer, strlen(buffer), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
-        memset(buffer, 0, 1024);
+            if (n < 0)
+            {
+                error("ERROR writing to socket");
+            }
+        }
+        
+        
 
     }
-
-    sockClose(sockfd);
+    
+    // t1.join();
+    // sockClose(sockfd);
 
     return 0;
 }
