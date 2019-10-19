@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Oct 15, 2019
+Last Date Modified: Oct 19, 2019
 Description:
     http://www.linuxhowtos.org/C_C++/socket.htm
     A simple server in the internet domain using UDP
@@ -121,6 +121,26 @@ void rec_msgs()
         {
             memcpy(&udpMsg, &udpMsg_recv, sizeof(udpMessage));
         }
+        else if (udpMsg_recv.nType == '0')
+        {
+            memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+        }
+        else if (udpMsg_recv.nType == '1')
+        {
+            memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+            memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
+        }
+        // else if (udpMsg_recv.nType == '2')
+        // {
+        //     memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+        //     memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
+        // }
+        else if (udpMsg_recv.nType == '3')
+        {
+            std::cout << "type 3!" << std::endl;
+            send_msgs();
+            memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+        }
     }
 }
 /////////////////////////////////////////////////
@@ -173,9 +193,14 @@ int main(int argc, char *argv[])
 
         std::cin >> command;
 
+        while (command != '0' && command != '1' && command != '2')
+        {
+            printf("Please enter command: ");
+            std::cin >> command;
+        }
+
         if (command == '0') 
         {
-            // std::cout << "chMsg: " << udpMsg.nType << std::endl;
             send_msgs();
         }
         else if (command == '1') 
