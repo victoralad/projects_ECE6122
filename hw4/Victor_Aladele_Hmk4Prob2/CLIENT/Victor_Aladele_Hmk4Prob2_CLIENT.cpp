@@ -197,28 +197,68 @@ int main(int argc, char *argv[])
         }
         else if (buffer[0] == 'v')
         {
-            udpMsg.nVersion = buffer[2];
+            if (buffer[3] == '\0')
+            {
+                udpMsg.nType = buffer[2];
+            }
+            else
+            {
+                udpMsg.nType = '9';
+            }
         }
         
         else
         {
-            udpMsg.nType = buffer[2];
-            udpMsg.lSeqNum = buffer[4];
-            int msg_start_idx, count = 0;
+            if (buffer[3] == ' ')
+            {
+                udpMsg.nType = buffer[2];
+            }
+            else
+            {
+                udpMsg.nType = 'z';
+            }
+            // udpMsg.lSeqNum = buffer[4];
+            
+            int lSeqNum_start_idx = 0, count_seq = 0, msg_start_idx = 0;
             for (int i = 0; i < bufferLen; ++i)
             {
                 if (isspace(buffer[i]))
                 {
-                    count++;
+                    count_seq++;
                 }
-                if (count > 2)
+                if (count_seq > 1)
                 {
-                    msg_start_idx = i + 1;
+                    lSeqNum_start_idx = i + 1;
                     break;
                 }
             }
+            std::string lSeq_conv = "";
+            for (int i = lSeqNum_start_idx; i < bufferLen; ++i)
+            {
+                if (isspace(buffer[i]))
+                {
+                    udpMsg.lSeqNum = stol(lSeq_conv);
+                    msg_start_idx = i + 1;
+                    break;
+                }
+                else
+                {
+                    lSeq_conv += buffer[i];
+                }
+            }
+
+            udpMsg.nMsgLen = 0;
+            for (int i = msg_start_idx; i < bufferLen; ++i)
+            {
+                if (buffer[i] == '\0')
+                {
+                    udpMsg.nMsgLen --;
+                    break;
+                }
+                udpMsg.nMsgLen++;
+            }
+
             memcpy(udpMsg.chMsg, buffer + msg_start_idx, sizeof(buffer) - msg_start_idx);
-            // std::cout << "type " << udpMsg.nType << std::endl;
             n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
             if (n < 0)

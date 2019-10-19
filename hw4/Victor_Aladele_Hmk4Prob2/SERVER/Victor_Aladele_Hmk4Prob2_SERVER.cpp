@@ -140,10 +140,10 @@ void rec_msgs()
             send_msgs();
             memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
         }
-        else
-        {
-            std::cout << "yess" << std::endl;
-        }
+        // else
+        // {
+        //     std::cout << "yess " << udpMsg_recv.nMsgLen << std::endl;
+        // }
         
     }
 }
