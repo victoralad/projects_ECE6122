@@ -121,7 +121,7 @@ void rec_msgs()
         {
             memcpy(&udpMsg, &udpMsg_recv, sizeof(udpMessage));
         }
-        else if (udpMsg_recv.nType == '0')
+        if (udpMsg_recv.nType == '0')
         {
             memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
         }
@@ -137,10 +137,14 @@ void rec_msgs()
         // }
         else if (udpMsg_recv.nType == '3')
         {
-            std::cout << "type 3!" << std::endl;
             send_msgs();
             memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
         }
+        else
+        {
+            std::cout << "yess" << std::endl;
+        }
+        
     }
 }
 /////////////////////////////////////////////////

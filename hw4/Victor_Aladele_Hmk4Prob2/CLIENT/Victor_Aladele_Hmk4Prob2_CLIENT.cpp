@@ -218,6 +218,7 @@ int main(int argc, char *argv[])
                 }
             }
             memcpy(udpMsg.chMsg, buffer + msg_start_idx, sizeof(buffer) - msg_start_idx);
+            // std::cout << "type " << udpMsg.nType << std::endl;
             n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
             if (n < 0)
