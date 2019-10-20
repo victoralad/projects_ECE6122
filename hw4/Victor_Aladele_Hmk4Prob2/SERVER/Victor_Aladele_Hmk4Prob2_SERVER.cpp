@@ -25,7 +25,7 @@ Description:
 
 typedef int SOCKET;
 char command;
-int sockfd, portno, n; 
+int sockfd, portno, n, maxMsgLen = 1000; 
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
 bool port_used = false;
@@ -135,7 +135,16 @@ void rec_msgs()
         else if (udpMsg_recv.nType == '1')
         {
             memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
-            memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
+            if (udpMsg_recv.nMsgLen > maxMsgLen)
+            {
+                memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, maxMsgLen - 1);
+                send_msgs();
+            }
+            else
+            {
+                memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
+            }
+            
             seq.clear();
         }
         // the message in chMsg is added to the composite message based on its lSeqNum
@@ -145,12 +154,20 @@ void rec_msgs()
             seq[udpMsg_recv.lSeqNum] = udpMsg_recv;
             for (it = seq.begin(); it != seq.end(); ++it)
             {
-                // memcpy(udpMsg.chMsg + udpMsg.nMsgLen, it->second.chMsg, it->second.nMsgLen);
-                strcpy(udpMsg.chMsg, it->second.chMsg);
-                udpMsg.nMsgLen += it->second.nMsgLen;
-                // std::cout << udpMsg.chMsg << " ";
+                if (udpMsg.nMsgLen + udpMsg_recv.nMsgLen > maxMsgLen)
+                {
+                    memcpy(udpMsg.chMsg + udpMsg.nMsgLen, udpMsg_recv.chMsg, maxMsgLen - udpMsg.nMsgLen - 1);
+                }
+                else
+                {
+                    memcpy(udpMsg.chMsg + udpMsg.nMsgLen + 1, it->second.chMsg, it->second.nMsgLen);
+                    // strcpy(udpMsg.chMsg + udpMsg.nMsgLen, it->second.chMsg);
+                    udpMsg.nMsgLen += it->second.nMsgLen;
+                    // std::cout << udpMsg.chMsg << " ";
+                }
+                
             }
-            std::cout << "\n";
+            // std::cout << "\n";
             // memset(udpMsg.chMsg, 0, sizeof(seq.begin()->second.nMsgLen));
             std::cout << udpMsg.chMsg << std::endl;
             // std::cout << " seq: " << seq.size() << std::endl;
@@ -209,7 +226,7 @@ int main(int argc, char *argv[])
     udpMsg.nType = '0';
     udpMsg.nMsgLen = 0;
     udpMsg.lSeqNum = 0;
-    memset(udpMsg.chMsg, 0, 1000);
+    memset(udpMsg.chMsg, 0, maxMsgLen);
 
     while (true)
     {
@@ -229,7 +246,7 @@ int main(int argc, char *argv[])
         }
         else if (command == '1') 
         {
-            memset(udpMsg.chMsg, 0, 1000);
+            memset(udpMsg.chMsg, 0, maxMsgLen);
         }
         else if (command == '2') 
         {

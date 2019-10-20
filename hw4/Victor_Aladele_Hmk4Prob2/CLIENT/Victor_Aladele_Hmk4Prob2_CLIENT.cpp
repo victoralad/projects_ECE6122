@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Oct 19, 2019
+Last Date Modified: Oct 20, 2019
 Description:
     http://www.linuxhowtos.org/C_C++/socket.htm
     A simple client in the internet domain using UDP
@@ -74,7 +74,7 @@ void rec_msgs()
 
         if (dont_quit)
         {
-            std::cout << "\nReceived Msg Type: " << udpMsg.chMsg << std::endl;
+            std::cout << "\nReceived Msg Type: " << udpMsg.nType << " " << "Seq: " << udpMsg.lSeqNum << " " << "Msg: " << " " << udpMsg.chMsg << std::endl;
             printf("Please enter command: ");
             std::cout << std::flush;
         }
@@ -197,14 +197,8 @@ int main(int argc, char *argv[])
         }
         else if (buffer[0] == 'v')
         {
-            if (true)
-            {
-                udpMsg.nVersion = buffer[2];
-            }
-            else
-            {
-                udpMsg.nVersion = '9';
-            }
+            udpMsg.nVersion = buffer[2];
+            std::cout << "You have selected version " << buffer[2] << ". If this is not correct, please enter a single digit (v #) without any following space" << std::endl;
         }
         
         else
