@@ -211,7 +211,6 @@ int main(int argc, char *argv[])
             {
                 udpMsg.nType = 'z';
             }
-            // udpMsg.lSeqNum = buffer[4];
             
             int lSeqNum_start_idx = 0, count_seq = 0, msg_start_idx = 0;
             for (int i = 0; i < bufferLen; ++i)
@@ -260,6 +259,7 @@ int main(int argc, char *argv[])
                 }
                 udpMsg.nMsgLen++;
             }
+            
             memcpy(udpMsg.chMsg, buffer + msg_start_idx, sizeof(buffer) - msg_start_idx);
             n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
