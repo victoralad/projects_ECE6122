@@ -21,15 +21,17 @@ Description:
 #include <arpa/inet.h>
 #include <netdb.h>  /* Needed for getaddrinfo() and freeaddrinfo() */
 #include <unistd.h> /* Needed for close() */
+#include <map>
 
 typedef int SOCKET;
 char command;
 int sockfd, portno, n; 
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
-std::vector<sockaddr_in> client;
 bool port_used = false;
-
+std::vector<sockaddr_in> client;
+std::map<int, struct udpMessage> seq;
+std::map<int, struct udpMessage>::iterator it;
 
 struct udpMessage
 {
@@ -39,6 +41,7 @@ struct udpMessage
     unsigned long lSeqNum;
     char chMsg[1000];
 }udpMsg, udpMsg_recv;
+
 
 /////////////////////////////////////////////////
 // Cross-platform socket close
@@ -70,11 +73,11 @@ void send_msgs()
 {
     if (udpMsg.nVersion != '1')
     {
+        // std::cout << "hey" << std::endl;
         return;
     }
     for (int i = 0; i < client.size(); ++i)
     {
-        
         n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&client[i], fromlen);
         if (n < 0)
         {
@@ -116,34 +119,51 @@ void rec_msgs()
                client.push_back(from); 
             }
         }
+
         // check if the version number of the incoming message is valid
         if (udpMsg_recv.nVersion == '1')
         {
             memcpy(&udpMsg, &udpMsg_recv, sizeof(udpMessage));
         }
+        // the composite message is immediately cleared and anything in the chMsg buffer is ignored
         if (udpMsg_recv.nType == '0')
         {
             memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+            seq.clear();
         }
+        // the composite message is immediately cleared and the message in chMsg is used as the start of a new composite message
         else if (udpMsg_recv.nType == '1')
         {
             memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
             memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
+            seq.clear();
         }
-        // else if (udpMsg_recv.nType == '2')
-        // {
-        //     memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
-        //     memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
-        // }
+        // the message in chMsg is added to the composite message based on its lSeqNum
+        else if (udpMsg_recv.nType == '2')
+        {
+            // memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+            seq[udpMsg_recv.lSeqNum] = udpMsg_recv;
+            for (it = seq.begin(); it != seq.end(); ++it)
+            {
+                // memcpy(udpMsg.chMsg + udpMsg.nMsgLen, it->second.chMsg, it->second.nMsgLen);
+                strcpy(udpMsg.chMsg, it->second.chMsg);
+                udpMsg.nMsgLen += it->second.nMsgLen;
+                // std::cout << udpMsg.chMsg << " ";
+            }
+            std::cout << "\n";
+            // memset(udpMsg.chMsg, 0, sizeof(seq.begin()->second.nMsgLen));
+            std::cout << udpMsg.chMsg << std::endl;
+            // std::cout << " seq: " << seq.size() << std::endl;
+
+        }
+        // the server immediately sends to all clients the current composite message and clears out the composite message.
         else if (udpMsg_recv.nType == '3')
         {
+            // std::cout << "type" << std::endl;
             send_msgs();
             memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+            seq.clear();
         }
-        // else
-        // {
-        //     std::cout << "yess " << udpMsg_recv.nMsgLen << std::endl;
-        // }
         
     }
 }

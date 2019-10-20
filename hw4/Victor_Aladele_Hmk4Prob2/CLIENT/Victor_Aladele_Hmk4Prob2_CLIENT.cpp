@@ -197,13 +197,13 @@ int main(int argc, char *argv[])
         }
         else if (buffer[0] == 'v')
         {
-            if (buffer[3] == '\0')
+            if (true)
             {
-                udpMsg.nType = buffer[2];
+                udpMsg.nVersion = buffer[2];
             }
             else
             {
-                udpMsg.nType = '9';
+                udpMsg.nVersion = '9';
             }
         }
         
@@ -237,7 +237,16 @@ int main(int argc, char *argv[])
             {
                 if (isspace(buffer[i]))
                 {
-                    udpMsg.lSeqNum = stol(lSeq_conv);
+                    // stol() throws invalid_argument exception when conversion process fails. 
+                    try
+                    { 
+                        udpMsg.lSeqNum = stol(lSeq_conv); 
+                    } 
+                    // catch invalid_argument exception. 
+                    catch(const std::invalid_argument)
+                    { 
+                        std::cerr << "Invalid sequence number...lSeqNum must be an integer...lSeqNum has now been set to default value of 0" << "\n"; 
+                    } 
                     msg_start_idx = i + 1;
                     break;
                 }
@@ -257,7 +266,6 @@ int main(int argc, char *argv[])
                 }
                 udpMsg.nMsgLen++;
             }
-
             memcpy(udpMsg.chMsg, buffer + msg_start_idx, sizeof(buffer) - msg_start_idx);
             n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
