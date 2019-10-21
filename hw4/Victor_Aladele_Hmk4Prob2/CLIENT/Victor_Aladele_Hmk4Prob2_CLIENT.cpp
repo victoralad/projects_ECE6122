@@ -78,7 +78,12 @@ void rec_msgs()
         // monitor if command has been given to quit program, so as not to print garbage
         if (dont_quit)
         {
-            std::cout << "\nReceived Msg Type: " << udpMsg.nType << " " << "Seq: " << udpMsg.lSeqNum << " " << "Msg: " << " " << udpMsg.chMsg << std::endl;
+            std::cout << "\nReceived Msg Type: " << udpMsg.nType << " " << "Seq: " << udpMsg.lSeqNum << " " << "Msg: " << " "; //<< udpMsg.chMsg << std::endl;
+            for(int i = 0; i < udpMsg.nMsgLen; ++i)
+            {
+                std::cout << udpMsg.chMsg[i];
+            }
+            std::cout << std::endl;
             printf("Please enter command: ");
             std::cout << std::flush;
         }

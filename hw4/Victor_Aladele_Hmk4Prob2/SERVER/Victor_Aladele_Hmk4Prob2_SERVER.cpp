@@ -25,7 +25,7 @@ Description:
 
 typedef int SOCKET;
 char command;
-int sockfd, portno, n, maxMsgLen = 1000; 
+int sockfd, portno, n, maxMsgLen = 8; 
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
 bool port_used = false;
@@ -39,7 +39,7 @@ struct udpMessage
     unsigned char nType;
     unsigned short nMsgLen;
     unsigned long lSeqNum;
-    char chMsg[1000];
+    char chMsg[8];
 }udpMsg, udpMsg_recv;
 
 
@@ -156,10 +156,12 @@ void rec_msgs()
                 if (udpMsg.nMsgLen + udpMsg_recv.nMsgLen > maxMsgLen)
                 {
                     std::cout << "greater than!" << std::endl;
+                    int temp = udpMsg_recv.nMsgLen;
                     udpMsg_recv.nMsgLen = maxMsgLen - udpMsg.nMsgLen;
-                    std::cout << "maxMsgLen, udpMsg.nMsgLen, udpMsg_recv.nMsgLen: ";
-                    std::cout << maxMsgLen <<" " << udpMsg.nMsgLen << " "<< udpMsg_recv.nMsgLen << std::endl;
-                    // memset(udpMsg_recv.chMsg + maxMsgLen, 0, udpMsg_recv.nMsgLen - maxMsgLen);
+                    std::cout << "maxMsgLen, udpMsg.nMsgLen, udpMsg_recv.nMsgLen, temp: ";
+                    std::cout << maxMsgLen <<" " << udpMsg.nMsgLen << " "<< udpMsg_recv.nMsgLen << " " << temp << std::endl;
+                    udpMsg.nMsgLen = maxMsgLen;
+                    // memset(udpMsg_recv.chMsg + maxMsgLen, 0, temp - maxMsgLen);
                     // memcpy(udpMsg.chMsg + udpMsg.nMsgLen, udpMsg_recv.chMsg, maxMsgLen - udpMsg.nMsgLen - 1);
                 }
                 // memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
@@ -181,6 +183,7 @@ void rec_msgs()
                 std::cout << udpMsg.chMsg << std::endl;
                 send_msgs();
                 memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+                udpMsg.nMsgLen = 0;
                 seq.clear();
             }
             
@@ -254,6 +257,7 @@ int main(int argc, char *argv[])
         else if (command == '2') 
         {
             printf("Composite Msg: %s\n", udpMsg.chMsg);
+            
         }
         
     }
