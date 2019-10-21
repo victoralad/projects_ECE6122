@@ -28,7 +28,7 @@ char command;
 int sockfd, portno, n, maxMsgLen = 1000; 
 socklen_t fromlen;
 struct sockaddr_in serv_addr, from;
-bool port_used = false;
+bool port_used = false, full = false;
 std::vector<sockaddr_in> client;
 std::map<int, struct udpMessage> seq;  // container to hold struct messages in order of sequence numbers 
 std::map<int, struct udpMessage>::iterator it;
@@ -156,6 +156,7 @@ void rec_msgs()
                 // check if the addition of the full size of the incoming message with the already stored message is greater than maxMsgLen
                 if (udpMsg.nMsgLen + udpMsg_recv.nMsgLen > maxMsgLen)
                 {
+                    full = true;
                     int temp = udpMsg_recv.nMsgLen;
                     udpMsg_recv.nMsgLen = maxMsgLen - udpMsg.nMsgLen;
                     udpMsg.nMsgLen = maxMsgLen;
@@ -169,6 +170,16 @@ void rec_msgs()
                     udpMsg.nMsgLen += it->second.nMsgLen;
                 }
                 udpMsg.nVersion = '1'; udpMsg.nType = '1';
+                if (full)
+                {
+                    send_msgs();
+                    memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+                    udpMsg.nMsgLen = 0;
+                    seq.clear();
+                    std::cout << "buffer has been emptied" << std::endl;
+                    printf("Please enter command: ");
+                    std::cout << std::flush;
+                }
             }
             // the server immediately sends to all clients the current composite message and clears out the composite message.
             else if (udpMsg_recv.nType == '3')
