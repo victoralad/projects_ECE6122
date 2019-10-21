@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Oct 20, 2019
+Last Date Modified: Oct 21, 2019
 Description:
     http://www.linuxhowtos.org/C_C++/socket.htm
     A simple client in the internet domain using UDP
@@ -27,7 +27,8 @@ char buffer[1024];
 struct sockaddr_in serv_addr;
 struct hostent *server;
 socklen_t fromlen = 0;
-bool dont_quit = true, invalid_input = true;
+bool dont_quit = true; // check if command to quit program has beeen given
+bool invalid_input = true; // check if command line input is valid before moving on
 
 struct udpMessage
 {
@@ -40,6 +41,7 @@ struct udpMessage
 
 /* Note: For POSIX, typedef SOCKET as an int. */
 
+// close socket
 int sockClose(SOCKET sock)
 {
     int status = 0;
@@ -61,6 +63,7 @@ void error(const char *msg)
     exit(0);
 }
 
+// function monitored by separate thread for receiving messages from server
 void rec_msgs()
 {
     while (true) 
@@ -72,6 +75,7 @@ void rec_msgs()
             error("ERROR reading from socket");
         }
 
+        // monitor if command has been given to quit program, so as not to print garbage
         if (dont_quit)
         {
             std::cout << "\nReceived Msg Type: " << udpMsg.nType << " " << "Seq: " << udpMsg.lSeqNum << " " << "Msg: " << " " << udpMsg.chMsg << std::endl;
@@ -85,6 +89,7 @@ void rec_msgs()
     }
 }
 
+// checks the validity of the input argument
 void isValidInput()
 {
     while (invalid_input) 
@@ -170,7 +175,7 @@ int main(int argc, char *argv[])
 
     serv_addr.sin_port = htons(portno);
 
-    std::thread t1(rec_msgs);
+    std::thread t1(rec_msgs); //thread to monitor received messages
 
     // Initialize udpMessage struct
     udpMsg.nVersion = '0';
@@ -184,10 +189,11 @@ int main(int argc, char *argv[])
         printf("Please enter command: ");
 
         memset(buffer, 0, bufferLen);
-        fgets(buffer, bufferLen, stdin);
+        fgets(buffer, bufferLen, stdin);  // get input command from the command line
 
         isValidInput();
 
+        // quit program
         if (buffer[0] == 'q')
         {
             dont_quit = false;
@@ -195,12 +201,14 @@ int main(int argc, char *argv[])
             t1.join();
             return 0;
         }
+        // change the version of the struct message to be sent
         else if (buffer[0] == 'v')
         {
             udpMsg.nVersion = buffer[2];
             std::cout << "You have selected version " << buffer[2] << ". If this is not correct, please enter a single digit (v #) without any following space" << std::endl;
         }
         
+        // initialized members of struct and send messages 
         else
         {
             if (buffer[3] == ' ')
@@ -212,6 +220,7 @@ int main(int argc, char *argv[])
                 udpMsg.nType = 'z';
             }
             
+            // ensure that the right lSeqNum is entered in the commandline 
             int lSeqNum_start_idx = 0, count_seq = 0, msg_start_idx = 0;
             for (int i = 0; i < bufferLen; ++i)
             {
@@ -259,8 +268,10 @@ int main(int argc, char *argv[])
                 }
                 udpMsg.nMsgLen++;
             }
-            
+
+            // copy all the actual message from the buffer to te chMsg 
             memcpy(udpMsg.chMsg, buffer + msg_start_idx, sizeof(buffer) - msg_start_idx);
+            // send message
             n = sendto(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
 
             if (n < 0)
@@ -269,7 +280,6 @@ int main(int argc, char *argv[])
             }
         }
         invalid_input = true;        
-
     }
     
     return 0;

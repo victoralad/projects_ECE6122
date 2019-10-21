@@ -71,6 +71,7 @@ void error(const char *msg)
 // send messages if command == 0
 void send_msgs()
 {
+    std::cout << "nVersion: " << udpMsg.nVersion << std::endl;
     if (udpMsg.nVersion != '1')
     {
         return;
@@ -118,69 +119,72 @@ void rec_msgs()
                client.push_back(from); 
             }
         }
-
+        std::cout << "incoming nVersion: " << udpMsg_recv.nVersion << std::endl;
         // check if the version number of the incoming message is valid
         if (udpMsg_recv.nVersion == '1')
         {
-            memcpy(&udpMsg, &udpMsg_recv, sizeof(udpMessage));
-        }
-        // the composite message is immediately cleared and anything in the chMsg buffer is ignored
-        if (udpMsg_recv.nType == '0')
-        {
-            memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
-            seq.clear();
-        }
-        // the composite message is immediately cleared and the message in chMsg is used as the start of a new composite message
-        else if (udpMsg_recv.nType == '1')
-        {
-            memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
-            if (udpMsg_recv.nMsgLen > maxMsgLen)
+            // memcpy(&udpMsg, &udpMsg_recv, sizeof(udpMessage));
+        
+            // the composite message is immediately cleared and anything in the chMsg buffer is ignored
+            if (udpMsg_recv.nType == '0')
             {
-                memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, maxMsgLen - 1);
-                send_msgs();
+                memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+                seq.clear();
             }
-            else
+            // the composite message is immediately cleared and the message in chMsg is used as the start of a new composite message
+            else if (udpMsg_recv.nType == '1')
             {
-                memcpy(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
+                if (udpMsg_recv.nMsgLen > maxMsgLen)
+                {
+                    send_msgs();
+                    memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+                    memmove(udpMsg.chMsg, udpMsg_recv.chMsg + maxMsgLen, udpMsg_recv.nMsgLen - maxMsgLen);
+
+                }
+                else
+                {
+                    memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+                    memmove(udpMsg.chMsg, udpMsg_recv.chMsg, sizeof(udpMsg.chMsg));
+                }
+                udpMsg.nVersion = '1'; udpMsg.nType = '1'; udpMsg.lSeqNum = 0; 
+                
+                seq.clear();
             }
-            
-            seq.clear();
-        }
-        // the message in chMsg is added to the composite message based on its lSeqNum
-        else if (udpMsg_recv.nType == '2')
-        {
-            // memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
-            seq[udpMsg_recv.lSeqNum] = udpMsg_recv;
-            for (it = seq.begin(); it != seq.end(); ++it)
+            // the message in chMsg is added to the composite message based on its lSeqNum
+            else if (udpMsg_recv.nType == '2')
             {
                 if (udpMsg.nMsgLen + udpMsg_recv.nMsgLen > maxMsgLen)
                 {
                     std::cout << "greater than!" << std::endl;
-                    memcpy(udpMsg.chMsg + udpMsg.nMsgLen, udpMsg_recv.chMsg, maxMsgLen - udpMsg.nMsgLen - 1);
+                    udpMsg_recv.nMsgLen = maxMsgLen - udpMsg.nMsgLen;
+                    std::cout << "maxMsgLen, udpMsg.nMsgLen, udpMsg_recv.nMsgLen: ";
+                    std::cout << maxMsgLen <<" " << udpMsg.nMsgLen << " "<< udpMsg_recv.nMsgLen << std::endl;
+                    // memset(udpMsg_recv.chMsg + maxMsgLen, 0, udpMsg_recv.nMsgLen - maxMsgLen);
+                    // memcpy(udpMsg.chMsg + udpMsg.nMsgLen, udpMsg_recv.chMsg, maxMsgLen - udpMsg.nMsgLen - 1);
                 }
-                else
+                // memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+                memset((void*)&udpMsg, 0, sizeof(udpMessage));
+                udpMsg.nMsgLen = 0;
+                seq[udpMsg_recv.lSeqNum] = udpMsg_recv;
+                for (it = seq.begin(); it != seq.end(); ++it)
                 {
-                    memcpy(udpMsg.chMsg + udpMsg.nMsgLen - it->second.nMsgLen, it->second.chMsg, it->second.nMsgLen);
-                    // strcpy(udpMsg.chMsg + udpMsg.nMsgLen, it->second.chMsg);
+                    memmove(udpMsg.chMsg + udpMsg.nMsgLen, it->second.chMsg, it->second.nMsgLen);
                     udpMsg.nMsgLen += it->second.nMsgLen;
-                    // std::cout << udpMsg.chMsg << " ";
                 }
-                
+                std::cout << "udpMsg nMsgLen: " << udpMsg.nMsgLen << std::endl;
+                std::cout << udpMsg.chMsg << std::endl;
+                udpMsg.nVersion = '1'; udpMsg.nType = '1';
             }
-            // std::cout << "\n";
-            // memset(udpMsg.chMsg, 0, sizeof(seq.begin()->second.nMsgLen));
-            std::cout << udpMsg.chMsg << std::endl;
-            // std::cout << " seq: " << seq.size() << std::endl;
-
+            // the server immediately sends to all clients the current composite message and clears out the composite message.
+            else if (udpMsg_recv.nType == '3')
+            {
+                std::cout << udpMsg.chMsg << std::endl;
+                send_msgs();
+                memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
+                seq.clear();
+            }
+            
         }
-        // the server immediately sends to all clients the current composite message and clears out the composite message.
-        else if (udpMsg_recv.nType == '3')
-        {
-            send_msgs();
-            memset(udpMsg.chMsg, 0, sizeof(udpMsg.chMsg));
-            seq.clear();
-        }
-        
     }
 }
 /////////////////////////////////////////////////
