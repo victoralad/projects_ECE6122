@@ -68,7 +68,6 @@ void rec_msgs()
 {
     while (true) 
     {
-
         n = recv(sockfd, (char*)&udpMsg, sizeof(udpMessage), 0);
         if (n < 0)
         {
