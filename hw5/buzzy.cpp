@@ -18,18 +18,18 @@ Description:
 #define SHIPMASS 10000;
 
 int timeOut; 
-
 double maxThrust;
 double shipSpeed;
-std::vector<double> shipPos(3);
-std::vector<double> shipSpeedDir(3);
+
+// std::vector<double> shipPos(3);
+// std::vector<double> shipSpeedDir(3);
+
 
 void readInputData();
 
-void readInputData() 
+void readInputData(std::vector<double> &allShipInfo) 
 {
-    std::vector<double> yelJacSpeed(7);
-    std::vector<std::vector<double> > allShipInfo(8, std::vector<double> (8, 0));
+    // std::vector<double> yelJacSpeed(7);
     // std::vector<std::vector<double> > yelJacPos(8, std::vector<double> (3, 0));
     // std::vector<std::vector<double> > yelJacSpeedDir(8, std::vector<double> (3, 0));
 
@@ -39,16 +39,14 @@ void readInputData()
     input >> maxThrust;
 
     // read in data for all ships 
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < 56; ++i)
     {
-        for (int j = 0; j < 7; ++j) 
-        {
-            input >> allShipInfo[i][j];
-            // std::cout << allShipInfo[i][j] << " ";
-        }
-        // set all ships status to active
-        allShipInfo[i][8] = 1;
-        // std::cout << allShipInfo[i][8] << std::endl;
+       input >> allShipInfo[i];
+    }
+    // set all ships status to active
+    for (int i = 56; i < 63; ++i) 
+    {
+        allShipInfo[i] = 1;
     }
     input.close();
 }
@@ -71,32 +69,87 @@ int main(int argc, char *argv[])
     
     if (rank == MASTER)
     {
-        readInputData();
-        for (int i = 0; i < 7; ++i)
+      
+        std::vector<double> allShipInfo(63);
+
+        readInputData(allShipInfo);
+
+        int rc;
+        for (int i = 1; i < 8; ++i)
         {
-            cout << "Rank " << rank << " sending to rank " << rank + 1 << endl;
-            rc = MPI_Send(  buf,            // void* data
-                            sizeof(buf),    // int count
-                            MPI_CHAR,       // MPI_Datatype datatype
-                            rank + 1,       // int destination
-                            0,              // int Message tag ID
-                            MPI_COMM_WORLD);// MPI_Comm communicator
+            std::cout << "Buzzy " << " sending timeOut info to Yellow Jacket " << rank + i << std::endl;
+            rc = MPI_Send(&timeOut, sizeof(timeOut), MPI_INT, rank + i, 0, MPI_COMM_WORLD);
             if (rc != MPI_SUCCESS)
             {
-                cout << "Rank " << rank
-                    << " send failed, rc " << rc << endl;
+                std::cout << "Sending timeOut info to Yellow Jacket " << rank + i << " failed, rc " << rc <<std::endl;
                 MPI_Finalize();
                 exit(1);
             }
+            
+            std::cout << "Buzzy " << " sending maxThrust info to Yellow Jacket " << rank + i << std::endl;
+            rc = MPI_Send(&maxThrust, sizeof(maxThrust), MPI_INT, rank + i, 0, MPI_COMM_WORLD);
+            if (rc != MPI_SUCCESS)
+            {
+                std::cout << "Sending maxThrust info to Yellow Jacket " << rank + i << " failed, rc " << rc <<std::endl;
+                MPI_Finalize();
+                exit(1);
+            }
+
+            std::cout << "Buzzy " << " sending allShipInfo to Yellow Jacket " << rank + i << std::endl;
+            rc = MPI_Send(&allShipInfo, sizeof(allShipInfo), MPI_INT, rank + i, 0, MPI_COMM_WORLD);
+            if (rc != MPI_SUCCESS)
+            {
+                std::cout << "Sending shipInfo to Yellow Jacket " << rank + i << " failed, rc " << rc <<std::endl;
+                MPI_Finalize();
+                exit(1);
+            }
+
+            std::cout << std::endl;
+
         }
+
+        std::cout << "-------------------------- Initialization completed! --------------------------" << std::endl;
 
     }
 
     for (int i = 1; i < 8; ++i)
     {
+        std::vector<double> allShipInfo(63);
+        int rc;
+        MPI_Status status;
         if (rank == i)
         {
-            // std::cout << "maxThrust" << rank << ": " << maxThrust << std::endl;
+
+            //   MPI_Recv(&buf, count, datatype, source, tag, comm, &status)
+            rc = MPI_Recv(&timeOut, sizeof(timeOut), MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+            if (rc != MPI_SUCCESS)
+            {
+                std::cout << "receive timeout info from Buzzy failed, rc " << rc <<std::endl;
+                MPI_Finalize();
+                exit(1);
+            }
+
+            rc = MPI_Recv(&maxThrust, sizeof(maxThrust), MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);
+            if (rc != MPI_SUCCESS)
+            {
+                std::cout << "receive maxThrust info from Buzzy failed, rc " << rc <<std::endl;
+                MPI_Finalize();
+                exit(1);
+            }
+
+            rc = MPI_Recv(&allShipInfo, sizeof(allShipInfo), MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);      
+            if (rc != MPI_SUCCESS)
+            {
+                std::cout << "receive allShipInfo info from Buzzy failed, rc " << rc <<std::endl;
+                MPI_Finalize();
+                exit(1);
+            }
+
+            for (int i = 0; i < allShipInfo.size(); ++i) 
+            {
+                std::cout << allShipInfo[i] << " ";
+            }
+            std::cout << std::endl;
         }
     }
 
