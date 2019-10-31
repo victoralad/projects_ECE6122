@@ -32,6 +32,10 @@ double recvAllShipPos[24] = {0};
 double recvAllShipVel[32] = {0};   
 double recvAllShipForce[24] = {0};
 
+bool shipDestroyed = false;
+bool allShipsDocked = true;
+bool missionFailed = false;
+
 void CalculateBuzzyXYZ();
 
 void CalculateYellowJacketXYZ();
@@ -90,7 +94,7 @@ int main(int argc, char**argv)
         
     }
     
-    timeOut = 2;
+    timeOut = 5;
     // Broadcast to yellowjackets
     MPI_Bcast(&timeOut, 1, MPI_INT, root, MPI_COMM_WORLD);
     MPI_Bcast(&maxThrust, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
@@ -121,7 +125,8 @@ int main(int argc, char**argv)
             MPI_Allgather(shipForce, 3, MPI_DOUBLE, recvAllShipForce, 3, MPI_DOUBLE, MPI_COMM_WORLD);
 
             // Output all ship info to console:  rankID, status, x, y, z, F x , F y , F z
-            std::cout << "----------------------- Round " << round << " -------rankID, status, x, y, z, Fx , Fy , Fz -----------------------" << std::endl;
+            std::cout << std::endl;
+            std::cout << "------------- Round " << round << " -------rankID, status, x, y, z, Fx , Fy , Fz --------------" << std::endl;
             for (int i = 1; i < numtasks; ++i)
             {
                 std::cout << i << " " << recvAllShipStatus[i] << " ";
@@ -135,6 +140,31 @@ int main(int argc, char**argv)
                 }
                 std::cout << std::endl;
             }
+
+            for (int i = 1; i < numtasks; ++i)
+            {
+                if (recvAllShipStatus[i] == 0)
+                {
+                    shipDestroyed = true;
+                    break;
+                }
+                else if (recvAllShipStatus[i] == 1)
+                {
+                    allShipsDocked = false;
+                    break;
+                }
+            }
+            
+            if (shipDestroyed)
+            {
+                std::cout << "\n" << "Mission failed! some Yellow Jackets have been destroyed! \n\n";
+                break;
+            }
+            else if (allShipsDocked)
+            {
+                std::cout << "\n" << "Success! All Yellow Jackets have docked with Buzzy at time: " << round + 1 << " units! \n\n";
+                break;
+            }
         }
         else
         {
@@ -144,9 +174,46 @@ int main(int argc, char**argv)
             MPI_Allgather(shipPos, 3, MPI_DOUBLE, recvAllShipPos, 3, MPI_DOUBLE, MPI_COMM_WORLD);
             MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllShipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
             MPI_Allgather(shipForce, 3, MPI_DOUBLE, recvAllShipForce, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+
+            for (int i = 1; i < numtasks; ++i)
+            {
+                if (recvAllShipStatus[i] == 0)
+                {
+                    shipDestroyed = true;
+                    break;
+                }
+                else if (recvAllShipStatus[i] == 1)
+                {
+                    allShipsDocked = false;
+                    break;
+                }
+            }
+            
+            if (shipDestroyed)
+            {
+                break;
+            }
+            else if (allShipsDocked)
+            {
+                break;
+            }
             
         }
+        
     }
+
+    if (rank == 0)
+    {
+        for (int i = 1; i < numtasks; ++i)
+        {
+            if (recvAllShipStatus[i] == 1)
+            {
+                std::cout << "\n" << "Timeout! Some Yellow Jackets were unable to dock with Buzzy within the time limit! \n\n";
+                break;
+            }
+        }
+    }
+    
 
     MPI_Finalize();
 }
