@@ -105,12 +105,15 @@ int main(int argc, char *argv[])
             }
 
             std::cout << std::endl;
+            std::cout << "maxThrust" << rank << ": " << maxThrust << std::endl;
 
         }
 
         std::cout << "-------------------------- Initialization completed! --------------------------" << std::endl;
 
     }
+
+    MPI_Barrier(MPI_COMM_WORLD);
 
     for (int i = 1; i < 8; ++i)
     {
@@ -137,21 +140,24 @@ int main(int argc, char *argv[])
                 exit(1);
             }
 
-            rc = MPI_Recv(&allShipInfo, sizeof(allShipInfo), MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);      
-            if (rc != MPI_SUCCESS)
-            {
-                std::cout << "receive allShipInfo info from Buzzy failed, rc " << rc <<std::endl;
-                MPI_Finalize();
-                exit(1);
-            }
+            // rc = MPI_Recv(&allShipInfo, sizeof(allShipInfo), MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &status);      
+            // if (rc != MPI_SUCCESS)
+            // {
+            //     std::cout << "receive allShipInfo info from Buzzy failed, rc " << rc <<std::endl;
+            //     MPI_Finalize();
+            //     exit(1);
+            // }
 
-            for (int i = 0; i < allShipInfo.size(); ++i) 
-            {
-                std::cout << allShipInfo[i] << " ";
-            }
-            std::cout << std::endl;
+            std::cout << "maxThrust" << rank << ": " << maxThrust << std::endl;
+
+            // for (int i = 0; i < allShipInfo.size(); ++i) 
+            // {
+            //     std::cout << allShipInfo[i] << " ";
+            // }
+            // std::cout << std::endl;
         }
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     while (timeOut > 0)
     {
