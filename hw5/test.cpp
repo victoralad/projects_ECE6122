@@ -16,13 +16,21 @@ const int root = 0;
 
 int timeOut; 
 double maxThrust;
-int shipStatus = 1;                 // set all ships status to active
 double allShipInfo[56] = {0};
-double shipVel[4] = {0};
-double recvAllshipVel[32] = {0};
-double force[3] = {0};
-double shipInfo[8] = {0};           // rankID, status, x, y, z, Fx , Fy , Fz
-double recvAllShipInfo[64] = {0};   // rankID, status, x, y, z, Fx , Fy , Fz  * 8
+
+const int posLen = 3;
+const int velLen = 4;
+const int forceLen = 3;
+
+int shipStatus = 1;                 // set all ships status to active
+double shipPos[posLen] = {0};           
+double shipVel[velLen] = {0};
+double shipForce[forceLen] = {0};
+
+int recvAllShipStatus[8] = {0};
+double recvAllShipPos[24] = {0};
+double recvAllShipVel[32] = {0};   
+double recvAllShipForce[24] = {0};
 
 void CalculateBuzzyXYZ();
 
@@ -33,22 +41,14 @@ void readInputData();
 void CalculateBuzzyXYZ()
 {
     // calculate new position of Buzzy using Newton's equation s1 = s0 + v*t
-    shipInfo[2] += shipVel[0] * shipVel[1]; // y
-    shipInfo[3] += shipVel[0] * shipVel[2]; // z
-    shipInfo[4] += shipVel[0] * shipVel[3]; // z
+    shipPos[0] += shipVel[0] * shipVel[1]; // x
+    shipPos[1] += shipVel[0] * shipVel[2]; // y
+    shipPos[2] += shipVel[0] * shipVel[3]; // z
 }
 
 void CalculateYellowJacketXYZ()
 {
-    shipInfo[1] = shipStatus;
-    for (int i = 2; i < 5; ++i)
-    {
-        shipInfo[i] = allShipInfo[7*rank + i];
-    }
-    for (int i = 5; i < 8; ++i)
-    {
-        shipInfo[i] = force[i - 5];
-    }
+    
 }
 
 void readInputData() 
@@ -97,55 +97,53 @@ int main(int argc, char**argv)
     MPI_Bcast(allShipInfo, 56, MPI_DOUBLE, root, MPI_COMM_WORLD);
 
     // set the initial ship velocity for all ships from allShipInfo
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 3; ++i)
     {
-        shipVel[i] = allShipInfo[i + 3];
+        shipPos[i] = allShipInfo[7*rank + i];
     }
-
-    // set the initial values to be printed to the screen by Buzzy
-    shipInfo[0] = rank;
-    shipInfo[1] = shipStatus;
-    for (int i = 2; i < 5; ++i)
+    for (int i = 3; i < 5; ++i)
     {
-        shipInfo[i] = allShipInfo[7*rank + i - 2]; 
+        shipVel[i] = allShipInfo[7*rank + i]; 
     }
-    for (int i = 5; i < 8; ++i)
-    {
-        shipInfo[i] = force[i - 5];
-    }
-
+    
     // Loop through the number of time steps
     for (int round = 0; round < timeOut; ++round)
     {
         if (rank == 0)
         {
-            MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllshipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
-
             // Calculate Buzzy new location
             CalculateBuzzyXYZ();
 
             // Share information with other yellow jackets
-            MPI_Allgather(shipInfo, 8, MPI_DOUBLE, recvAllShipInfo, 8, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(&shipStatus, 1, MPI_INT, &recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgather(shipPos, 3, MPI_DOUBLE, recvAllShipPos, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllShipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(shipForce, 3, MPI_DOUBLE, recvAllShipForce, 3, MPI_DOUBLE, MPI_COMM_WORLD);
 
             // Output all ship info to console:  rankID, status, x, y, z, F x , F y , F z
             std::cout << "----------------------- Round " << round << " -------rankID, status, x, y, z, Fx , Fy , Fz -----------------------" << std::endl;
-            for (int i = 0; i < numtasks; ++i)
+            for (int i = 1; i < numtasks; ++i)
             {
-                for (int j = 0; j < 8; ++j)
+                std::cout << i << " " << recvAllShipStatus[i] << " ";
+                for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << recvAllShipInfo[8*i + j] << " ";
+                    std::cout << std::scientific << recvAllShipPos[8*i + j] << " ";
+                }
+                for (int j = 0; j < 3; ++j)
+                {
+                    std::cout << std::scientific << recvAllShipForce[8*i + j] << " ";
                 }
                 std::cout << std::endl;
             }
         }
         else
         {
-            MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllshipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
             // Calculate yellow jacket new location
             // CalculateYellowJacketXYZ();
-
-           
-            MPI_Allgather(shipInfo, 8, MPI_DOUBLE, recvAllShipInfo, 8, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(&shipStatus, 1, MPI_INT, &recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgather(shipPos, 3, MPI_DOUBLE, recvAllShipPos, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllShipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(shipForce, 3, MPI_DOUBLE, recvAllShipForce, 3, MPI_DOUBLE, MPI_COMM_WORLD);
             
         }
     }
