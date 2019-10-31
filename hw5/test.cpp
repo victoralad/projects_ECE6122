@@ -19,7 +19,7 @@ int shipStatus = 1; // set all ships status to active
 int recvAllShipStatus[8] = {0};
 double allShipInfo[56] = {0};
 double recvAllShipInfo[56] = {0};
-double shipInfo[7];
+double shipInfo[7] = {8};
 
 void CalculateBuzzyXYZ();
 
@@ -90,6 +90,11 @@ int main(int argc, char**argv)
     MPI_Bcast(&maxThrust, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
     MPI_Bcast(allShipInfo, 56, MPI_DOUBLE, root, MPI_COMM_WORLD);
 
+    for (int i = 0; i < 7; ++i)
+    {
+        shipInfo[i] = allShipInfo[7*rank + i];
+    }
+
     // Loop through the number of time steps
     for (int round = 0; round < timeOut; ++round)
     {
@@ -101,20 +106,27 @@ int main(int argc, char**argv)
             // CalculateBuzzyXYZ();
             // std::cout << round << std::endl;
             MPI_Allgather(&shipStatus, 1, MPI_INT, recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
-            MPI_Allgather(shipInfo, 7, MPI_DOUBLE, recvAllShipInfo, 7, MPI_DOUBLE, MPI_COMM_WORLD);
+            // MPI_Allgather(shipInfo, 7, MPI_DOUBLE, recvAllShipInfo, 7, MPI_DOUBLE, MPI_COMM_WORLD);
+            
         }
         else
         {
             // Calculate yellow jacket new location
             // CalculateYellowJacketXYZ();
+            shipStatus = rank;
             MPI_Allgather(&shipStatus, 1, MPI_INT, recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
-            // shipStatus = recvAllShipStatus[rank];
             
-            MPI_Allgather(shipInfo, 7, MPI_DOUBLE, recvAllShipInfo, 7, MPI_DOUBLE, MPI_COMM_WORLD);
-            // std::cout << shipStatus << " " << std::endl;
-            for (int i = 7*rank; i < 7*rank + 7; ++i)
+            for (int i = 0; i < 8; ++i)
             {
-                std::cout << recvAllShipInfo[i] << " ";
+                std::cout << recvAllShipStatus[i] << " ";
+            }
+            std::cout << std::endl;
+
+           
+            MPI_Allgather(shipInfo, 7, MPI_DOUBLE, recvAllShipInfo, 7, MPI_DOUBLE, MPI_COMM_WORLD);
+            for (int i = 0; i < 7; ++i)
+            {
+                std::cout << recvAllShipInfo[7*rank + i] << " ";
             }
             std::cout << std::endl;
         }
