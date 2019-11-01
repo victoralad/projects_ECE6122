@@ -19,7 +19,7 @@ double maxThrust;
 double allShipInfo[56] = {0};
 
 const int posLen = 3;
-const int velLen = 4;
+const int velLen = 3;
 const int forceLen = 3;
 
 int shipStatus = 1;                 // set all ships status to active
@@ -29,7 +29,7 @@ double shipForce[forceLen] = {0};
 
 int recvAllShipStatus[8] = {0};
 double recvAllShipPos[24] = {0};
-double recvAllShipVel[32] = {0};   
+double recvAllShipVel[24] = {0};   
 double recvAllShipForce[24] = {0};
 
 bool shipDestroyed = false;
@@ -61,9 +61,9 @@ void CalculateYellowJacketXYZ()
     for (int i = 0; i < 3; ++i)
     {
         errPos[i] = recvAllShipPos[i] - shipPos[i];
-        errVel[i] = (recvAllShipVel[0] * recvAllShipVel[i + 1]) - (shipVel[0] * shipVel[i]);
-        errInt[i] = recvAllShipVel[0] * recvAllShipVel[i + 1];
-        shipForce[i] = mKp * errPos[i]  +  mKd * errVel[i]  +  errInt[i];
+        errVel[i] = recvAllShipVel[i] - shipVel[i];
+        errInt[i] = recvAllShipVel[i];
+        shipForce[i] = mKp * errPos[i]  +  mKd * errVel[i]; //  +  errInt[i];
 
         // Update ship kinematics: s1 = s0 + v0*t + 0.5*a*t^2;  v1 = v0 + a*t;
         shipAccel[i] = shipForce[i]/SHIPMASS;
@@ -115,7 +115,7 @@ int main(int argc, char**argv)
         
     }
     
-    timeOut = 5;
+    timeOut = 10;
     // Broadcast to yellowjackets
     MPI_Bcast(&timeOut, 1, MPI_INT, root, MPI_COMM_WORLD);
     MPI_Bcast(&maxThrust, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
@@ -125,102 +125,86 @@ int main(int argc, char**argv)
     for (int i = 0; i < 3; ++i)
     {
         shipPos[i] = allShipInfo[7*rank + i];
+        shipVel[i] = allShipInfo[7*rank + 3] * allShipInfo[7*rank + 3 + i + 1]; 
     }
-    for (int i = 3; i < 5; ++i)
-    {
-        shipVel[i] = allShipInfo[7*rank + i]; 
-    }
+ 
     
     // Loop through the number of time steps
     for (int round = 0; round < timeOut; ++round)
     {
+        // Share information with other yellow jackets
+        MPI_Allgather(&shipStatus, 1, MPI_INT, &recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
+        MPI_Allgather(shipPos, posLen, MPI_DOUBLE, recvAllShipPos, posLen, MPI_DOUBLE, MPI_COMM_WORLD);
+        MPI_Allgather(shipVel, velLen, MPI_DOUBLE, recvAllShipVel, velLen, MPI_DOUBLE, MPI_COMM_WORLD);
+        MPI_Allgather(shipForce, forceLen, MPI_DOUBLE, recvAllShipForce, forceLen, MPI_DOUBLE, MPI_COMM_WORLD);
+            
         if (rank == 0)
         {
             // Calculate Buzzy new location
             CalculateBuzzyXYZ();
 
-            // Share information with other yellow jackets
-            MPI_Allgather(&shipStatus, 1, MPI_INT, &recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
-            MPI_Allgather(shipPos, 3, MPI_DOUBLE, recvAllShipPos, 3, MPI_DOUBLE, MPI_COMM_WORLD);
-            MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllShipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
-            MPI_Allgather(shipForce, 3, MPI_DOUBLE, recvAllShipForce, 3, MPI_DOUBLE, MPI_COMM_WORLD);
-
             // Output all ship info to console:  rankID, status, x, y, z, F x , F y , F z
             std::cout << std::endl;
             std::cout << "------------- Round " << round << " -------rankID, status, x, y, z, Fx , Fy , Fz --------------" << std::endl;
+            // debug print out
+            for (int i = 0; i < numtasks; ++i)
+            {
+                std::cout << i << " " << recvAllShipStatus[i] << " ";
+                for (int j = 0; j < 3; ++j)
+                {
+                    std::cout << recvAllShipPos[3*i + j] << " ";
+                }
+                for (int j = 0; j < 3; ++j)
+                {
+                    std::cout << recvAllShipVel[3*i + j] << " ";
+                }
+                std::cout << std::endl;
+            }
+            /*
             for (int i = 1; i < numtasks; ++i)
             {
                 std::cout << i << " " << recvAllShipStatus[i] << " ";
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << std::scientific << recvAllShipPos[8*i + j] << " ";
+                    std::cout << std::scientific << recvAllShipPos[3*i + j] << " ";
                 }
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << std::scientific << recvAllShipForce[8*i + j] << " ";
+                    std::cout << std::scientific << recvAllShipForce[3*i + j] << " ";
                 }
                 std::cout << std::endl;
             }
-
-            for (int i = 1; i < numtasks; ++i)
-            {
-                if (recvAllShipStatus[i] == 0)
-                {
-                    shipDestroyed = true;
-                    break;
-                }
-                else if (recvAllShipStatus[i] == 1)
-                {
-                    allShipsDocked = false;
-                    break;
-                }
-            }
-            
-            if (shipDestroyed)
-            {
-                std::cout << "\n" << "Mission failed! some Yellow Jackets have been destroyed! \n\n";
-                break;
-            }
-            else if (allShipsDocked)
-            {
-                std::cout << "\n" << "Success! All Yellow Jackets have docked with Buzzy at time: " << round + 1 << " units! \n\n";
-                break;
-            }
+            */
         }
         else
         {
             // Calculate yellow jacket new location
             CalculateYellowJacketXYZ();
-            MPI_Allgather(&shipStatus, 1, MPI_INT, &recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
-            MPI_Allgather(shipPos, 3, MPI_DOUBLE, recvAllShipPos, 3, MPI_DOUBLE, MPI_COMM_WORLD);
-            MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllShipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
-            MPI_Allgather(shipForce, 3, MPI_DOUBLE, recvAllShipForce, 3, MPI_DOUBLE, MPI_COMM_WORLD);
+        }
 
-            for (int i = 1; i < numtasks; ++i)
+        for (int i = 1; i < numtasks; ++i)
+        {
+            if (recvAllShipStatus[i] == 0)
             {
-                if (recvAllShipStatus[i] == 0)
-                {
-                    shipDestroyed = true;
-                    break;
-                }
-                else if (recvAllShipStatus[i] == 1)
-                {
-                    allShipsDocked = false;
-                    break;
-                }
-            }
-            
-            if (shipDestroyed)
-            {
+                shipDestroyed = true;
                 break;
             }
-            else if (allShipsDocked)
+            else if (recvAllShipStatus[i] == 1)
             {
+                allShipsDocked = false;
                 break;
             }
-            
         }
         
+        if (shipDestroyed)
+        {
+            break;
+        }
+        else if (allShipsDocked)
+        {
+            break;
+        }
+           
     }
 
     if (rank == 0)
@@ -235,6 +219,5 @@ int main(int argc, char**argv)
         }
     }
     
-
     MPI_Finalize();
 }
