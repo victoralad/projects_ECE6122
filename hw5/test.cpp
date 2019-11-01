@@ -34,7 +34,12 @@ double recvAllShipForce[24] = {0};
 
 bool shipDestroyed = false;
 bool allShipsDocked = true;
-bool missionFailed = false;
+
+double mKp = 5, mKd = 2.5; // PD controller gains
+double errPos[posLen] = {0};
+double errVel[velLen] = {0};
+double errInt[3] = {0}; // Integral error that is proportional to the velocity of Buzzy
+double shipAccel[3] = {0};
 
 void CalculateBuzzyXYZ();
 
@@ -52,7 +57,23 @@ void CalculateBuzzyXYZ()
 
 void CalculateYellowJacketXYZ()
 {
-    
+    // use PD controller  // note time = 1 unit
+    for (int i = 0; i < 3; ++i)
+    {
+        errPos[i] = recvAllShipPos[i] - shipPos[i];
+        errVel[i] = (recvAllShipVel[0] * recvAllShipVel[i + 1]) - (shipVel[0] * shipVel[i]);
+        errInt[i] = recvAllShipVel[0] * recvAllShipVel[i + 1];
+        shipForce[i] = mKp * errPos[i]  +  mKd * errVel[i]  +  errInt[i];
+
+        // Update ship kinematics: s1 = s0 + v0*t + 0.5*a*t^2;  v1 = v0 + a*t;
+        shipAccel[i] = shipForce[i]/SHIPMASS;
+        shipPos[i] += shipVel[i] + 0.5 * shipAccel[i];
+        shipVel[i] += shipAccel[i];
+
+    }
+
+
+    // test stuff for kuka in gazebo by printing out plots
 }
 
 void readInputData() 
@@ -169,7 +190,7 @@ int main(int argc, char**argv)
         else
         {
             // Calculate yellow jacket new location
-            // CalculateYellowJacketXYZ();
+            CalculateYellowJacketXYZ();
             MPI_Allgather(&shipStatus, 1, MPI_INT, &recvAllShipStatus, 1, MPI_INT, MPI_COMM_WORLD);
             MPI_Allgather(shipPos, 3, MPI_DOUBLE, recvAllShipPos, 3, MPI_DOUBLE, MPI_COMM_WORLD);
             MPI_Allgather(shipVel, 4, MPI_DOUBLE, recvAllShipVel, 4, MPI_DOUBLE, MPI_COMM_WORLD);
