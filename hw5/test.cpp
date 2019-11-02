@@ -35,7 +35,7 @@ double recvAllShipForce[24] = {0};
 bool shipDestroyed = false;
 bool allShipsDocked = true;
 
-double mKp = 5, mKd = 2.5; // PD controller gains
+double mKp = 200, mKd = 200; // PD controller gains
 double errPos[posLen] = {0};
 double errVel[velLen] = {0};
 double errInt[3] = {0}; // Integral error that is proportional to the velocity of Buzzy
@@ -50,9 +50,9 @@ void readInputData();
 void CalculateBuzzyXYZ()
 {
     // calculate new position of Buzzy using Newton's equation s1 = s0 + v*t
-    shipPos[0] += shipVel[0] * shipVel[1]; // x
-    shipPos[1] += shipVel[0] * shipVel[2]; // y
-    shipPos[2] += shipVel[0] * shipVel[3]; // z
+    shipPos[0] += shipVel[0]; // x
+    shipPos[1] += shipVel[1]; // y
+    shipPos[2] += shipVel[2]; // z
 }
 
 void CalculateYellowJacketXYZ()
@@ -63,7 +63,7 @@ void CalculateYellowJacketXYZ()
         errPos[i] = recvAllShipPos[i] - shipPos[i];
         errVel[i] = recvAllShipVel[i] - shipVel[i];
         errInt[i] = recvAllShipVel[i];
-        shipForce[i] = mKp * errPos[i]  +  mKd * errVel[i]; //  +  errInt[i];
+        shipForce[i] = mKp * errPos[i]  +  mKd * errVel[i];//  +  errInt[i];
 
         // Update ship kinematics: s1 = s0 + v0*t + 0.5*a*t^2;  v1 = v0 + a*t;
         shipAccel[i] = shipForce[i]/SHIPMASS;
@@ -72,8 +72,6 @@ void CalculateYellowJacketXYZ()
 
     }
 
-
-    // test stuff for kuka in gazebo by printing out plots
 }
 
 void readInputData() 
@@ -115,7 +113,7 @@ int main(int argc, char**argv)
         
     }
     
-    timeOut = 10;
+    timeOut = 1000;
     // Broadcast to yellowjackets
     MPI_Bcast(&timeOut, 1, MPI_INT, root, MPI_COMM_WORLD);
     MPI_Bcast(&maxThrust, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
@@ -204,7 +202,7 @@ int main(int argc, char**argv)
         {
             break;
         }
-           
+        // MPI_Barrier(MPI_COMM_WORLD);
     }
 
     if (rank == 0)
