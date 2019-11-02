@@ -4,8 +4,9 @@
 
 
 #include <iostream>
+#include <ctime>
+#include <cmath> 
 #include <fstream>
-#include <vector>
 #include <mpi.h>
 
 
@@ -32,8 +33,6 @@ double recvAllShipPos[24] = {0};
 double recvAllShipVel[24] = {0};   
 double recvAllShipForce[24] = {0};
 
-bool shipDestroyed = false;
-bool allShipsDocked = true;
 
 double mKp = 200, mKd = 200; // PD controller gains
 double errPos[posLen] = {0};
@@ -44,6 +43,8 @@ double shipAccel[3] = {0};
 void CalculateBuzzyXYZ();
 
 void CalculateYellowJacketXYZ();
+
+void updateShipStatus();
 
 void readInputData();
 
@@ -57,7 +58,9 @@ void CalculateBuzzyXYZ()
 
 void CalculateYellowJacketXYZ()
 {
-    // use PD controller  // note time = 1 unit
+    srand(time(NULL));
+
+    // use PD controller  // note time = 1 second
     for (int i = 0; i < 3; ++i)
     {
         errPos[i] = recvAllShipPos[i] - shipPos[i];
@@ -66,12 +69,24 @@ void CalculateYellowJacketXYZ()
         shipForce[i] = mKp * errPos[i]  +  mKd * errVel[i];//  +  errInt[i];
 
         // Update ship kinematics: s1 = s0 + v0*t + 0.5*a*t^2;  v1 = v0 + a*t;
-        shipAccel[i] = shipForce[i]/SHIPMASS;
+        shipAccel[i] = (rand()%40 + 80) / 100.0 * shipForce[i]/SHIPMASS;
         shipPos[i] += shipVel[i] + 0.5 * shipAccel[i];
         shipVel[i] += shipAccel[i];
-
     }
 
+    updateShipStatus();
+}
+
+void updateShipStatus()
+{
+    double yJacVelMag = sqrt(shipVel[0]*shipVel[0] + shipVel[1]*shipVel[1] + shipVel[2]*shipVel[2]);
+    double dotProduct = shipVel[0]*recvAllShipVel[0] + shipVel[1]*recvAllShipVel[1] + shipVel[2]*recvAllShipVel[2];
+    double cosTheta = dotProduct / (yJacVelMag * allShipInfo[3]);
+
+    if (cosTheta > 0.8)
+    {
+        shipStatus = 2;
+    }
 }
 
 void readInputData() 
@@ -177,29 +192,51 @@ int main(int argc, char**argv)
         else
         {
             // Calculate yellow jacket new location
-            CalculateYellowJacketXYZ();
+            if (shipStatus == 1)
+            {
+                CalculateYellowJacketXYZ();
+            }
         }
+
+        bool allShipsDestroyed = true;
+        bool allShipsDocked = true;
 
         for (int i = 1; i < numtasks; ++i)
         {
             if (recvAllShipStatus[i] == 0)
             {
-                shipDestroyed = true;
-                break;
+                allShipsDestroyed = true &&  allShipsDestroyed;
             }
-            else if (recvAllShipStatus[i] == 1)
+            else
+            {
+                allShipsDestroyed = false;
+            }
+            
+            if (recvAllShipStatus[i] == 2)
+            {
+                allShipsDocked = true && allShipsDocked;
+            }
+            else
             {
                 allShipsDocked = false;
-                break;
             }
+            
         }
         
-        if (shipDestroyed)
+        if (allShipsDestroyed)
         {
+            if (rank == 0)
+            {
+                std::cout << "\n" << "Mission failed! All Yellow Jackets have been destroyed! \n\n";
+            }
             break;
         }
         else if (allShipsDocked)
         {
+            if (rank == 0)
+            {
+                std::cout << "\n" << "Success! All Yellow Jackets have docked with Buzzy at time: " << round + 1 << " seconds! \n\n";
+            }
             break;
         }
         // MPI_Barrier(MPI_COMM_WORLD);
