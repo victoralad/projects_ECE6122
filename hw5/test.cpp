@@ -18,6 +18,8 @@ const int root = 0;
 int timeOut; 
 double maxThrust;
 double allShipInfo[56] = {0};
+double posGains[7] = {300, 300, 200, 100, 200, 30, 10}; 
+double velGains[7] = {300, 300, 200, 100, 200, 30, 10};
 
 const int posLen = 3;
 const int velLen = 3;
@@ -34,7 +36,7 @@ double recvAllShipVel[24] = {0};
 double recvAllShipForce[24] = {0};
 
 
-double mKp = 200, mKd = 200; // PD controller gains
+double mKp = posGains[rank] / 5, mKd = velGains[rank] / 5; // PD controller gains
 double errPos[posLen] = {0};
 double errVel[velLen] = {0};
 double errInt[3] = {0}; // Integral error that is proportional to the velocity of Buzzy
@@ -69,7 +71,7 @@ void CalculateYellowJacketXYZ()
         shipForce[i] = mKp * errPos[i]  +  mKd * errVel[i];//  +  errInt[i];
 
         // Update ship kinematics: s1 = s0 + v0*t + 0.5*a*t^2;  v1 = v0 + a*t;
-        shipAccel[i] = (rand()%40 + 80) / 100.0 * shipForce[i]/SHIPMASS;
+        shipAccel[i] = (rand()%40 + 80) / 100.0 * shipForce[i]/SHIPMASS; // added some randomness to simulate misfiring of the thrusters 
         shipPos[i] += shipVel[i] + 0.5 * shipAccel[i];
         shipVel[i] += shipAccel[i];
     }
@@ -97,11 +99,40 @@ void updateShipStatus()
     double buzzyVelMag = sqrt(recvAllShipVel[0]*recvAllShipVel[0] + recvAllShipVel[1]*recvAllShipVel[1] + recvAllShipVel[2]*recvAllShipVel[2]);
 
     // check if all necessary conditions for docking
-    if (distSqToBuzzy < 50 * 50 && cosTheta > 0.8 && yJacVelMag < 1.1 * buzzyVelMag)
+    if (distSqToBuzzy < 50 * 50)
     {
-        shipStatus = 2;
+        if (cosTheta <= 0.8 || yJacVelMag >= 1.1 * buzzyVelMag) 
+        {
+            shipStatus = 0; // ship crashed!!!
+        }
+        else
+        {
+            shipStatus = 2; // ship docked!
+        }
+        
     }
 
+    // calculate distance to every other ship 
+    double distSqToAllShips[6] = {0};
+    for (int i = 1; i < numtasks; ++i) 
+    {
+        if (i == rank)
+        {
+            continue;
+        }
+        for (int j = 0; j < posLen; ++j) 
+        {
+            distSqToAllShips[i - 1] += (recvAllShipPos[posLen*i + j] - shipPos[j]) * (recvAllShipPos[posLen*i + j] - shipPos[j]);
+        }
+
+        // check if ship is at a safe distance from every other ship
+        if (distSqToAllShips[i - 1] < 250 * 250)
+        {
+            std::cout << "ship - " << rank << " collided with ship: " << i << " at position " << distSqToAllShips[i - 1] << std::endl;
+            shipStatus = 0; // ship crashed!!!
+            break;
+        }
+    }
 }
 
 void readInputData() 
@@ -118,6 +149,7 @@ void readInputData()
     }
 
     input.close();
+
 }
 
 int main(int argc, char**argv)
@@ -143,7 +175,7 @@ int main(int argc, char**argv)
         
     }
     
-    timeOut = 1000;
+    timeOut = 3000;
     // Broadcast to yellowjackets
     MPI_Bcast(&timeOut, 1, MPI_INT, root, MPI_COMM_WORLD);
     MPI_Bcast(&maxThrust, 1, MPI_DOUBLE, root, MPI_COMM_WORLD);
@@ -180,11 +212,11 @@ int main(int argc, char**argv)
                 std::cout << i << ", " << recvAllShipStatus[i] << ", ";
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << recvAllShipPos[3*i + j] << ", ";
+                    std::cout << recvAllShipPos[posLen * i + j] << ", ";
                 }
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << recvAllShipVel[3*i + j] << ", ";
+                    std::cout << recvAllShipVel[velLen*i + j] << ", ";
                 }
                 std::cout << std::endl;
             }
@@ -194,11 +226,11 @@ int main(int argc, char**argv)
                 std::cout << i << ", " << recvAllShipStatus[i] << ", ";
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << std::scientific << recvAllShipPos[3*i + j] << ", ";
+                    std::cout << std::scientific << recvAllShipPos[posLen * i + j] << ", ";
                 }
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << std::scientific << recvAllShipForce[3*i + j] << ", ";
+                    std::cout << std::scientific << recvAllShipForce[forceLen * i + j] << ", ";
                 }
                 std::cout << std::endl;
             }

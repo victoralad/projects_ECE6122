@@ -38,8 +38,8 @@ x=data[:,0,1]#2D diagram with x
 y=data[:,0,3]#and z
 ax.set_autoscale_on(True) # enable autoscale
 ax.autoscale_view(True,True,True)
-ax.set_xlim([np.min(data[:,:,1]),np.max(data[:,:,1])])#scale to the limits of x
-ax.set_ylim([np.min(data[:,:,3]),np.max(data[:,:,3])])#scale to the limits of y
+# ax.set_xlim([np.min(data[:,:,1]),np.max(data[:,:,1])])#scale to the limits of x
+# ax.set_ylim([np.min(data[:,:,3]),np.max(data[:,:,3])])#scale to the limits of y
 line1, = ax.plot(x, y, 'x')
 text = []
 
@@ -64,8 +64,8 @@ for i in range (2000):
         else:
             text.append(plt.text(x[j], y[j], str(j)))
 
-   ax.relim()        # Recalculate limits
-   ax.autoscale_view(True,True,True) #Autoscale
+    ax.relim()        # Recalculate limits
+    ax.autoscale_view(True,True,True) #Autoscale
     fig.canvas.draw()
     fig.canvas.flush_events()
  
