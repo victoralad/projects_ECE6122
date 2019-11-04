@@ -79,14 +79,29 @@ void CalculateYellowJacketXYZ()
 
 void updateShipStatus()
 {
+    // calculate distance to Buzzy
+    double distSqToBuzzy = 0;
+    for (int i = 0; i < posLen; ++i) 
+    {
+        distSqToBuzzy += (recvAllShipPos[i] - shipPos[i]) * (recvAllShipPos[i] - shipPos[i]);
+    }
+
+    // calculate velocity magnitude of Buzzy
     double yJacVelMag = sqrt(shipVel[0]*shipVel[0] + shipVel[1]*shipVel[1] + shipVel[2]*shipVel[2]);
     double dotProduct = shipVel[0]*recvAllShipVel[0] + shipVel[1]*recvAllShipVel[1] + shipVel[2]*recvAllShipVel[2];
+    
+    // calculate orientation of yellow Jacket with respect to Buzzy
     double cosTheta = dotProduct / (yJacVelMag * allShipInfo[3]);
 
-    if (cosTheta > 0.8)
+    // calculate velocity magnitude of Buzzy
+    double buzzyVelMag = sqrt(recvAllShipVel[0]*recvAllShipVel[0] + recvAllShipVel[1]*recvAllShipVel[1] + recvAllShipVel[2]*recvAllShipVel[2]);
+
+    // check if all necessary conditions for docking
+    if (distSqToBuzzy < 50 * 50 && cosTheta > 0.8 && yJacVelMag < 1.1 * buzzyVelMag)
     {
         shipStatus = 2;
     }
+
 }
 
 void readInputData() 
@@ -162,28 +177,28 @@ int main(int argc, char**argv)
             // debug print out
             for (int i = 0; i < numtasks; ++i)
             {
-                std::cout << i << " " << recvAllShipStatus[i] << " ";
+                std::cout << i << ", " << recvAllShipStatus[i] << ", ";
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << recvAllShipPos[3*i + j] << " ";
+                    std::cout << recvAllShipPos[3*i + j] << ", ";
                 }
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << recvAllShipVel[3*i + j] << " ";
+                    std::cout << recvAllShipVel[3*i + j] << ", ";
                 }
                 std::cout << std::endl;
             }
             /*
             for (int i = 1; i < numtasks; ++i)
             {
-                std::cout << i << " " << recvAllShipStatus[i] << " ";
+                std::cout << i << ", " << recvAllShipStatus[i] << ", ";
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << std::scientific << recvAllShipPos[3*i + j] << " ";
+                    std::cout << std::scientific << recvAllShipPos[3*i + j] << ", ";
                 }
                 for (int j = 0; j < 3; ++j)
                 {
-                    std::cout << std::scientific << recvAllShipForce[3*i + j] << " ";
+                    std::cout << std::scientific << recvAllShipForce[3*i + j] << ", ";
                 }
                 std::cout << std::endl;
             }
