@@ -18,8 +18,10 @@ const int root = 0;
 int timeOut; 
 double maxThrust;
 double allShipInfo[56] = {0};
-double posGains[7] = {300, 300, 200, 100, 200, 30, 10}; 
-double velGains[7] = {300, 300, 200, 100, 200, 30, 10};
+double posGains[7] = {100, 100, 100, 100, 100, 100, 100};  // position control gains to prevent the ships from crashing into each other
+double velGains[7] = {100, 100, 100, 100, 100, 100, 100};
+double posGainsToBuzzy[8] = {0, 300, 100, 200, 50, 150, 30, 10}; // position control gains to drive the each ship towards Buzzy
+double velGainsToBuzzy[8] = {0, 300, 300, 200, 100, 200, 30, 10};
 
 const int posLen = 3;
 const int velLen = 3;
@@ -35,12 +37,6 @@ double recvAllShipPos[24] = {0};
 double recvAllShipVel[24] = {0};   
 double recvAllShipForce[24] = {0};
 
-
-double mKp = posGains[rank] / 5, mKd = velGains[rank] / 5; // PD controller gains
-double errPos[posLen] = {0};
-double errVel[velLen] = {0};
-double errInt[3] = {0}; // Integral error that is proportional to the velocity of Buzzy
-double shipAccel[3] = {0};
 
 void CalculateBuzzyXYZ();
 
@@ -62,9 +58,55 @@ void CalculateYellowJacketXYZ()
 {
     srand(time(NULL));
 
+    double errPos[posLen] = {0};
+    double errVel[velLen] = {0};
+    double errInt[3] = {0}; // Integral error that is proportional to the velocity of Buzzy
+    double shipAccel[3] = {0};
+
+    double errPosAllShips[6][3];
+
+    // for (int i = 1; i < numtasks; ++i) 
+    // {
+    //     if (i == rank)
+    //     {
+    //         continue;
+    //     }
+    //     for (int j = 0; j < 3; ++j)
+    //     {
+    //         errPosAllShips[i - 1][j] = 250 + recvAllShipPos[posLen*i + j] - shipPos[posLen*i + j];
+    //         shipForce[i] = mKp * errPos[i];
+    //     }
+    // }
+
+     // calculate distance to Buzzy
+    double distSqToBuzzy = 0;
+    for (int i = 0; i < posLen; ++i) 
+    {
+        distSqToBuzzy += (recvAllShipPos[i] - shipPos[i]) * (recvAllShipPos[i] - shipPos[i]);
+    }
+
+    // calculate distance to every other ship 
+    double distSqToAllShips[6] = {0};
+    for (int i = 1; i < numtasks; ++i) 
+    {
+        if (i == rank)
+        {
+            continue;
+        }
+        for (int j = 0; j < posLen; ++j) 
+        {
+            distSqToAllShips[i - 1] += (recvAllShipPos[posLen*i + j] - shipPos[j]) * (recvAllShipPos[posLen*i + j] - shipPos[j]);
+        }
+    }
+
     // use PD controller  // note time = 1 second
     for (int i = 0; i < 3; ++i)
     {
+
+
+        double mKp = posGainsToBuzzy[rank] / 5; // PD controller gains
+        double mKd = velGainsToBuzzy[rank] / 5; 
+
         errPos[i] = recvAllShipPos[i] - shipPos[i];
         errVel[i] = recvAllShipVel[i] - shipVel[i];
         errInt[i] = recvAllShipVel[i];
@@ -76,17 +118,11 @@ void CalculateYellowJacketXYZ()
         shipVel[i] += shipAccel[i];
     }
 
-    updateShipStatus();
+    updateShipStatus(distSqToBuzzy, distSqToAllShips);
 }
 
-void updateShipStatus()
+void updateShipStatus(double distSqToBuzzy, double distSqToAllShips)
 {
-    // calculate distance to Buzzy
-    double distSqToBuzzy = 0;
-    for (int i = 0; i < posLen; ++i) 
-    {
-        distSqToBuzzy += (recvAllShipPos[i] - shipPos[i]) * (recvAllShipPos[i] - shipPos[i]);
-    }
 
     // calculate velocity magnitude of Buzzy
     double yJacVelMag = sqrt(shipVel[0]*shipVel[0] + shipVel[1]*shipVel[1] + shipVel[2]*shipVel[2]);
@@ -112,23 +148,13 @@ void updateShipStatus()
         
     }
 
-    // calculate distance to every other ship 
-    double distSqToAllShips[6] = {0};
-    for (int i = 1; i < numtasks; ++i) 
+    
+    for (int i = 0; i < 6; ++i) 
     {
-        if (i == rank)
-        {
-            continue;
-        }
-        for (int j = 0; j < posLen; ++j) 
-        {
-            distSqToAllShips[i - 1] += (recvAllShipPos[posLen*i + j] - shipPos[j]) * (recvAllShipPos[posLen*i + j] - shipPos[j]);
-        }
-
         // check if ship is at a safe distance from every other ship
-        if (distSqToAllShips[i - 1] < 250 * 250)
+        if (distSqToAllShips[i] < 250 * 250)
         {
-            std::cout << "ship - " << rank << " collided with ship: " << i << " at position " << distSqToAllShips[i - 1] << std::endl;
+            // std::cout << "ship - " << rank << " collided with ship: " << i + 1 << " at position " << distSqToAllShips[i] << std::endl;
             shipStatus = 0; // ship crashed!!!
             break;
         }
@@ -239,7 +265,7 @@ int main(int argc, char**argv)
         else
         {
             // Calculate yellow jacket new location
-            if (shipStatus == 1)
+            if (shipStatus == 1 && round > 200 * rank - 200)
             {
                 CalculateYellowJacketXYZ();
             }
