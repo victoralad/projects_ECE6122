@@ -13,7 +13,33 @@ Description:
 #include <stdlib.h> // standard definitions
 
 
+
 #define ESC 27
+
+GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
+GLfloat light0_specular[] = {0.8, 0.8, 0.8, 1.0};
+GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat mat_shininess[] = {50.0};
+GLfloat light1_position[] = {-5.0, -5.0, 8.0};
+
+void init(void)
+{
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glShadeModel(GL_SMOOTH);
+
+    glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+    glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light0_specular);
+    glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_COLOR_MATERIAL); 
+    
+    glEnable(GL_DEPTH_TEST);
+}
 
 //----------------------------------------------------------------------
 // Global variables
@@ -57,63 +83,32 @@ void changeSize(int w, int h)
 }
 
 //----------------------------------------------------------------------
-// Draw one snowmen (at the origin)
-//
-// A snowman consists of a large body sphere and a smaller head sphere.
-// The head sphere has two black eyes and an orange conical nose. To
-// better create the impression they are sitting on the ground, we draw
-// a fake shadow, consisting of a dark circle under each.
-//
-// We make extensive use of nested transformations. Everything is drawn
-// relative to the origin. The snowman's eyes and nose are positioned
-// relative to a head sphere centered at the origin. Then the head is
-// translated into its final position. The body is drawn and translated
-// into its final position.
-//----------------------------------------------------------------------
-// void drawSnowman()
-// {
-//     // Draw body (a 20x20 spherical mesh of radius 0.75 at height 0.75)
-//     glColor3f(1.0, 1.0, 1.0); // set drawing color to white
-//     glPushMatrix();
-//         glTranslatef(0.0, 0.0, 0.75);
-//         glutSolidSphere(0.75, 20, 20);
-//     glPopMatrix();
+// Draw chess pieces (starting at the origin)
+// White pieces drawn first followed by black pieces
+// ----------------------------------------------------------------------
+void drawChessPieces()
+{
+    int i;
+    // ----------- Draw white chess pieces ----------- 
+    // Draw pawn pieces
+    for (i = 0; i < 8; ++i) {
+        glColor3f(0.549, 0.549, 0.529); // set drawing color to white
+        glPushMatrix();
+            glTranslatef(i + 0.5, 1.5, 0.375);
+            glutSolidSphere(0.375, 20, 20);
+        glPopMatrix();
+    }
 
-//     // Draw the head (a sphere of radius 0.25 at height 1.75)
-//     glPushMatrix();
-//         glTranslatef(0.0, 0.0, 1.75); // position head
-//         glutSolidSphere(0.25, 20, 20); // head sphere
-
-//         // Draw Eyes (two small black spheres)
-//         glColor3f(0.0, 0.0, 0.0); // eyes are black
-//         glPushMatrix();
-//             glTranslatef(0.0, -0.18, 0.10); // lift eyes to final position
-//             glPushMatrix();
-//                 glTranslatef(-0.05, 0.0, 0.0);
-//                 glutSolidSphere(0.05, 10, 10); // right eye
-//             glPopMatrix();
-//             glPushMatrix();
-//                 glTranslatef(+0.05, 0.0, 0.0);
-//                 glutSolidSphere(0.05, 10, 10); // left eye
-//             glPopMatrix();
-//         glPopMatrix();
-
-//         // Draw Nose (the nose is an orange cone)
-//         glColor3f(1.0, 0.5, 0.5); // nose is orange
-//         glPushMatrix();
-//             glRotatef(90.0, 1.0, 0.0, 0.0); // rotate to point along -y
-//             glutSolidCone(0.08, 0.5, 10, 2); // draw cone
-//         glPopMatrix();
-//     glPopMatrix();
-
-//     // Draw a faux shadow beneath snow man (dark green circle)
-//     glColor3f(0.0, 0.5, 0.0);
-//     glPushMatrix();
-//         glTranslatef(0.2, 0.2, 0.001);    // translate to just above ground
-//         glScalef(1.0, 1.0, 0.0); // scale sphere into a flat pancake
-//         glutSolidSphere(0.75, 20, 20); // shadow same size as body
-//     glPopMatrix();
-// }
+    // ----------- Draw black chess pieces ----------- 
+    // Draw pawn pieces
+    for (i = 0; i < 8; ++i) {
+        glColor3f(0.588, 0.294, 0); // set drawing color to black
+        glPushMatrix();
+            glTranslatef(i + 0.5, 6.5, 0.375);
+            glutSolidSphere(0.375, 20, 20);
+        glPopMatrix();
+    }
+}
 
 //----------------------------------------------------------------------
 // Update with each idle event
@@ -140,8 +135,8 @@ void renderScene(void)
 {
     int i, j;
 
-    // Clear color and depth buffers
-    glClearColor(0.0, 0.7, 1.0, 1.0); // sky color is light blue
+     // Clear color and depth buffers
+    glClearColor(0.1, 0.3, 0.1, 1.0); // background color is green
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Reset transformations
@@ -154,23 +149,30 @@ void renderScene(void)
         lx, ly, lz,
         0.0, 1.0, 0.0);
 
-    // Draw ground - 8 x 8 grid chess board 
-    glColor3f(0.0, 0.0, 0.0);
-    glBegin(GL_QUADS);
-        glVertex3f(0.0, 0.0, 0.0);
-        glVertex3f(0.0, 8.0, 0.0);
-        glVertex3f(8.0, 8.0, 0.0);
-        glVertex3f(8.0, 0.0, 0.0);
-    glEnd();
-
-    // Draw 16 white boxes on chess board
-    glColor3f(1.0, 1.0, 1.0);
+    // draw chess board
     for (i = 0; i < 8; i++)
     {
         for (j = 0; j < 8; j++)
         {
-            if ((i + j) % 2 != 0) 
+            if ((i + j) % 2 == 0) 
             {
+                // draw black boxes on chess board
+                glColor3f(0.0, 0.0, 0.0);
+                glPushMatrix();
+                    glTranslatef(i, j, 0);
+                    glBegin(GL_QUADS);
+                        glVertex3f(0.0, 0.0, 0.0);
+                        glVertex3f(0.0, 1.0, 0.0);
+                        glVertex3f(1.0, 1.0, 0.0);
+                        glVertex3f(1.0, 0.0, 0.0);
+                    glEnd();
+                glPopMatrix();
+            }
+            
+            else 
+            {
+                // draw white boxes on chess board
+                glColor3f(1.0, 1.0, 1.0);
                 glPushMatrix();
                     glTranslatef(i, j, 0);
                     glBegin(GL_QUADS);
@@ -183,6 +185,9 @@ void renderScene(void)
             }
         }
     }
+
+    drawChessPieces();
+
     glutSwapBuffers(); // Make it all visible
 }
 
@@ -233,12 +238,11 @@ int main(int argc, char **argv)
 
     // general initializations
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
+    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowPosition(100, 100);
     glutInitWindowSize(600, 600);
     glutCreateWindow("Chess Set");
-    glEnable(GL_COLOR_MATERIAL); 
-    // glEnable(GL_DEPTH_TEST);
+    init();
     // register callbacks
     glutReshapeFunc(changeSize); // window reshape callback
     glutDisplayFunc(renderScene); // (re)display callback
