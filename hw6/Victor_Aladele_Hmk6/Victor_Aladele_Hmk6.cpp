@@ -21,6 +21,7 @@ GLfloat light0_specular[] = {0.8, 0.8, 0.8, 1.0};
 GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
 GLfloat mat_shininess[] = {50.0};
 GLfloat light1_position[] = {-5.0, -5.0, 8.0};
+GLdouble width = 0.75, depth = 0.75, height = 1.0;
 
 void init(void)
 {
@@ -90,22 +91,36 @@ void drawChessPieces()
 {
     int i;
     // ----------- Draw white chess pieces ----------- 
-    // Draw pawn pieces
+    glColor3f(0.549, 0.549, 0.529); // set drawing color to white
+    // Draw white pawn pieces
     for (i = 0; i < 8; ++i) {
-        glColor3f(0.549, 0.549, 0.529); // set drawing color to white
         glPushMatrix();
-            glTranslatef(i + 0.5, 1.5, 0.375);
-            glutSolidSphere(0.375, 20, 20);
+            glTranslatef(i + 0.5, 1.5, width / 2);
+            glutSolidSphere(width / 2, 20, 20);
+        glPopMatrix();
+    }
+    // Draw white rooks
+    for (i = 0; i < 8; i += 7) {
+        glPushMatrix();
+            glTranslatef(i + 0.5, 0.5, width / 2);
+            glutSolidCube(width);
         glPopMatrix();
     }
 
     // ----------- Draw black chess pieces ----------- 
-    // Draw pawn pieces
+    glColor3f(0.588, 0.294, 0); // set drawing color to black
+    // Draw black pawn pieces
     for (i = 0; i < 8; ++i) {
-        glColor3f(0.588, 0.294, 0); // set drawing color to black
         glPushMatrix();
-            glTranslatef(i + 0.5, 6.5, 0.375);
-            glutSolidSphere(0.375, 20, 20);
+            glTranslatef(i + 0.5, 6.5, width / 2);
+            glutSolidSphere(width / 2, 20, 20);
+        glPopMatrix();
+    }
+    // Draw black rooks
+    for (i = 0; i < 8; i += 7) {
+        glPushMatrix();
+            glTranslatef(i + 0.5, 7.5, width / 2);
+            glutSolidCube(width);
         glPopMatrix();
     }
 }
