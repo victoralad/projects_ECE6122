@@ -26,8 +26,7 @@ Description:
 // point in the direction the camera is looking. The variables angle and
 // deltaAngle control the camera's angle. The variable deltaMove
 // indicates the amount of incremental motion for the camera with each
-// redraw cycle. The variables isDragging and xDragStart are used to
-// monitor the mouse when it drags (with the left button down).
+// redraw cycle. 
 //----------------------------------------------------------------------
 
 // Camera position
@@ -164,23 +163,26 @@ void renderScene(void)
         glVertex3f(8.0, 0.0, 0.0);
     glEnd();
 
-    // // Draw 16 white boxes on chess board
-    // glColor3f(1.0, 1.0, 1.0);
-    // for (i = 0; i < 4; i++)
-    // {
-    //     for (j = 0; j < 4; j++)
-    //     {
-    //         glPushMatrix();
-    //             glTranslatef(i*2, j*2, 0);
-    //             glBegin(GL_QUADS);
-    //                 glVertex3f(0.0, 0.0, 0.0);
-    //                 glVertex3f(0.0, 1.0, 0.0);
-    //                 glVertex3f(1.0, 1.0, 0.0);
-    //                 glVertex3f(1.0, 0.0, 0.0);
-    //             glEnd();
-    //         glPopMatrix();
-    //     }
-    // }
+    // Draw 16 white boxes on chess board
+    glColor3f(1.0, 1.0, 1.0);
+    for (i = 0; i < 8; i++)
+    {
+        for (j = 0; j < 8; j++)
+        {
+            if ((i + j) % 2 != 0) 
+            {
+                glPushMatrix();
+                    glTranslatef(i, j, 0);
+                    glBegin(GL_QUADS);
+                        glVertex3f(0.0, 0.0, 0.0);
+                        glVertex3f(0.0, 1.0, 0.0);
+                        glVertex3f(1.0, 1.0, 0.0);
+                        glVertex3f(1.0, 0.0, 0.0);
+                    glEnd();
+                glPopMatrix();
+            }
+        }
+    }
     glutSwapBuffers(); // Make it all visible
 }
 
