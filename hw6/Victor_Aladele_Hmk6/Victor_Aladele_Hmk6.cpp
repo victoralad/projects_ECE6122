@@ -78,7 +78,7 @@ void changeSize(int w, int h)
     float ratio = ((float)w) / ((float)h); // window aspect ratio
     glMatrixMode(GL_PROJECTION); // projection matrix is active
     glLoadIdentity(); // reset the projection
-    gluPerspective(42.0, ratio, 0.1, 30.0); // perspective transformation
+    gluPerspective(43, ratio, 0.1, 30.0); // perspective transformation
     glMatrixMode(GL_MODELVIEW); // return to modelview mode
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
@@ -92,6 +92,7 @@ void drawChessPieces()
     int i;
     // ----------- Draw white chess pieces ----------- 
     glColor3f(140.0/255, 140.0/255, 135.0/255); // set drawing color to white
+
     // Draw white pawn pieces
     for (i = 0; i < 8; ++i) {
         glPushMatrix();
@@ -100,6 +101,7 @@ void drawChessPieces()
             glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
     }
+
     // Draw white rooks
     for (i = 0; i < 8; i += 7) {
         glPushMatrix();
@@ -108,8 +110,9 @@ void drawChessPieces()
             glutSolidCube(height);
         glPopMatrix();
     }
+
     // Draw white bishops
-    for (i = 2; i < 7; i += 4) {
+    for (i = 2; i < 6; i += 3) {
         glPushMatrix();
             glTranslatef(i + 0.5, 0.5, 0);
             glScalef(width, depth, height);
@@ -117,8 +120,34 @@ void drawChessPieces()
         glPopMatrix();
     }
 
+    // Draw white queen
+    glPushMatrix();
+        glTranslatef(3.5, 0.5, height / 2);
+        glScalef(width / 2, depth / 2, height);
+        glutSolidTetrahedron();
+    glPopMatrix();
+
+    // Draw white king
+    glPushMatrix();
+        glTranslatef(4.5, 0.5, height / 2);
+        glScalef(width / 2, depth / 2, height);
+        glutSolidOctahedron();
+    glPopMatrix();
+
+    // Draw white knight
+    for (i = 1; i < 7; i += 5) {
+        glPushMatrix();
+            glTranslatef(i + 0.5, 0.5, 0.5);
+            glScalef(width, depth, height * 1.5);
+            glRotatef(90, 1.0, 0.0, 0.0);
+            glRotatef(90, 0.0, 1.0, 0.0);
+            glutSolidTeapot(0.5);
+        glPopMatrix();
+    }
+
     // ----------- Draw black chess pieces ----------- 
     glColor3f(150.0/255, 75.0/255, 0.0); // set drawing color to black
+
     // Draw black pawn pieces
     for (i = 0; i < 8; ++i) {
         glPushMatrix();
@@ -127,6 +156,7 @@ void drawChessPieces()
             glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
     }
+
     // Draw black rooks
     for (i = 0; i < 8; i += 7) {
         glPushMatrix();
@@ -135,8 +165,9 @@ void drawChessPieces()
             glutSolidCube(height);
         glPopMatrix();
     }
+
     // Draw black bishops
-    for (i = 2; i < 7; i += 4) {
+    for (i = 2; i < 6; i += 3) {
         glPushMatrix();
             glTranslatef(i + 0.5, 7.5, 0);
             glScalef(width, depth, height);
@@ -144,6 +175,16 @@ void drawChessPieces()
         glPopMatrix();
     }
     
+    // Draw black knight
+    for (i = 1; i < 7; i += 5) {
+        glPushMatrix();
+            glTranslatef(i + 0.5, 7.5, 0.5);
+            glScalef(width, depth, height * 1.5);
+            glRotatef(90, 1.0, 0.0, 0.0);
+            glRotatef(-90, 0.0, 1.0, 0.0);
+            glutSolidTeapot(0.5);
+        glPopMatrix();
+    }
 }
 
 //----------------------------------------------------------------------
