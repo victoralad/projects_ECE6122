@@ -91,38 +91,59 @@ void drawChessPieces()
 {
     int i;
     // ----------- Draw white chess pieces ----------- 
-    glColor3f(0.549, 0.549, 0.529); // set drawing color to white
+    glColor3f(140.0/255, 140.0/255, 135.0/255); // set drawing color to white
     // Draw white pawn pieces
     for (i = 0; i < 8; ++i) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 1.5, width / 2);
-            glutSolidSphere(width / 2, 20, 20);
+            glTranslatef(i + 0.5, 1.5, height / 2);
+            glScalef(width, depth, height);
+            glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
     }
     // Draw white rooks
     for (i = 0; i < 8; i += 7) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 0.5, width / 2);
-            glutSolidCube(width);
+            glTranslatef(i + 0.5, 0.5, height / 2);
+            glScalef(width, depth, height);
+            glutSolidCube(height);
+        glPopMatrix();
+    }
+    // Draw white bishops
+    for (i = 2; i < 7; i += 4) {
+        glPushMatrix();
+            glTranslatef(i + 0.5, 0.5, 0);
+            glScalef(width, depth, height);
+            glutSolidCone(height / 2, height, 20, 20);
         glPopMatrix();
     }
 
     // ----------- Draw black chess pieces ----------- 
-    glColor3f(0.588, 0.294, 0); // set drawing color to black
+    glColor3f(150.0/255, 75.0/255, 0.0); // set drawing color to black
     // Draw black pawn pieces
     for (i = 0; i < 8; ++i) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 6.5, width / 2);
-            glutSolidSphere(width / 2, 20, 20);
+            glTranslatef(i + 0.5, 6.5, height / 2);
+            glScalef(width, depth, height);
+            glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
     }
     // Draw black rooks
     for (i = 0; i < 8; i += 7) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 7.5, width / 2);
-            glutSolidCube(width);
+            glTranslatef(i + 0.5, 7.5, height / 2);
+            glScalef(width, depth, height);
+            glutSolidCube(height);
         glPopMatrix();
     }
+    // Draw black bishops
+    for (i = 2; i < 7; i += 4) {
+        glPushMatrix();
+            glTranslatef(i + 0.5, 7.5, 0);
+            glScalef(width, depth, height);
+            glutSolidCone(height / 2, height, 20, 20);
+        glPopMatrix();
+    }
+    
 }
 
 //----------------------------------------------------------------------
@@ -244,13 +265,6 @@ void releaseSpecialKey(int key, int x, int y)
 //----------------------------------------------------------------------
 int main(int argc, char **argv)
 {
-    printf("\n\
------------------------------------------------------------------------\n\
-  OpenGL Sample Program:\n\
-  - Hold up-arrow/down-arrow to move camera forward/backward\n\
-  - q or ESC to quit\n\
------------------------------------------------------------------------\n");
-
     // general initializations
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);
