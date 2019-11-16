@@ -1,9 +1,10 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Nov 12, 2019
+Last Date Modified: Nov 15, 2019
 Description:
-    3D chess set model using OpenGL
+    3D simulation of a half time UAV show using MPI and OpenGL.
+    The UAVs are red in color and spherical in shape. 
 */
 
 #include <iostream>
@@ -11,8 +12,6 @@ Description:
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h> // standard definitions
-
-
 
 #define ESC 27
 
@@ -86,110 +85,10 @@ void changeSize(int w, int h)
 }
 
 //----------------------------------------------------------------------
-// Draw chess pieces (starting at the origin)
-// White pieces drawn first followed by black pieces
+// Draw Football field (starting at the origin)
 // ----------------------------------------------------------------------
-void drawChessPieces()
+void drawFootballField()
 {
-    int i;
-    // ----------- Draw white chess pieces ----------- 
-    glColor3f(140.0/255, 140.0/255, 135.0/255); // set drawing color to white
-
-    // Draw white pawn pieces
-    for (i = 0; i < 8; ++i) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 1.5, height / 2);
-            glScalef(width, depth, height);
-            glutSolidSphere(height / 2, 20, 20);
-        glPopMatrix();
-    }
-
-    // Draw white rooks
-    for (i = 0; i < 8; i += 7) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 0.5, height / 2);
-            glScalef(width, depth, height);
-            glutSolidCube(height);
-        glPopMatrix();
-    }
-
-    // Draw white bishops
-    for (i = 2; i < 6; i += 3) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 0.5, 0);
-            glScalef(width, depth, height);
-            glutSolidCone(height / 2, height, 20, 20);
-        glPopMatrix();
-    }
-
-    // Draw white queen
-    glPushMatrix();
-        glTranslatef(3.5, 0.5, height / 2);
-        glScalef(width / 2, depth / 2, height);
-        // glTranslatef(3.5, 0.5, height / 3);
-        // glScaled(0.5, 0.5, 0.5);
-        glRotatef(30, 0.0, 1.0, 0.0);
-        glutSolidTetrahedron();
-    glPopMatrix();
-
-    // Draw white king
-    glPushMatrix();
-        glTranslatef(4.5, 0.5, height / 2);
-        glScalef(width / 2, depth / 2, height);
-        glutSolidOctahedron();
-    glPopMatrix();
-
-    // Draw white knight
-    for (i = 1; i < 7; i += 5) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 0.5, 0.5);
-            glScalef(width, depth * 0.8, height * 1.5);
-            glRotatef(90, 1.0, 0.0, 0.0);
-            glRotatef(90, 0.0, 1.0, 0.0);
-            glutSolidTeapot(0.5);
-        glPopMatrix();
-    }
-
-    // ----------- Draw black chess pieces ----------- 
-    glColor3f(150.0/255, 75.0/255, 0.0); // set drawing color to black
-
-    // Draw black pawn pieces
-    for (i = 0; i < 8; ++i) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 6.5, height / 2);
-            glScalef(width, depth, height);
-            glutSolidSphere(height / 2, 20, 20);
-        glPopMatrix();
-    }
-
-    // Draw black rooks
-    for (i = 0; i < 8; i += 7) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 7.5, height / 2);
-            glScalef(width, depth, height);
-            glutSolidCube(height);
-        glPopMatrix();
-    }
-
-    // Draw black bishops
-    for (i = 2; i < 6; i += 3) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 7.5, 0);
-            glScalef(width, depth, height);
-            glutSolidCone(height / 2, height, 20, 20);
-        glPopMatrix();
-    }
-    
-    // Draw black knight
-    for (i = 1; i < 7; i += 5) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 7.5, 0.5);
-            glScalef(width, depth, height * 1.5);
-            glRotatef(90, 1.0, 0.0, 0.0);
-            glRotatef(-90, 0.0, 1.0, 0.0);
-            glutSolidTeapot(0.5);
-        glPopMatrix();
-    }
 }
 
 //----------------------------------------------------------------------
@@ -201,9 +100,8 @@ void drawChessPieces()
 void update(void)
 {
     if (deltaMove) { // update camera position
-        // x += deltaMove * lx * 0.25;
-        // y += deltaMove * ly * 0.25;
-        z += deltaMove;
+        x += deltaMove * lx * 0.1;
+        y += deltaMove * ly * 0.1;
     }
     glutPostRedisplay(); // redisplay everything
 }
@@ -219,7 +117,7 @@ void renderScene(void)
     int i, j;
 
      // Clear color and depth buffers
-    glClearColor(0.1, 0.3, 0.1, 1.0); // background color is green
+    glClearColor(0.32, 0.29, 0.27, 1.0); // (0.196078, 0.6, 0.8, 1.0); // background color is blue
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Reset transformations
@@ -232,44 +130,17 @@ void renderScene(void)
         lx, ly, lz,
         0.0, 0.0, 1.0);
 
-    // draw chess board
-    for (i = 0; i < 8; i++)
-    {
-        for (j = 0; j < 8; j++)
-        {
-            if ((i + j) % 2 == 0) 
-            {
-                // draw black boxes on chess board
-                glColor3f(0.0, 0.0, 0.0);
-                glPushMatrix();
-                    glTranslatef(i, j, 0);
-                    glBegin(GL_QUADS);
-                        glVertex3f(0.0, 0.0, 0.0);
-                        glVertex3f(0.0, 1.0, 0.0);
-                        glVertex3f(1.0, 1.0, 0.0);
-                        glVertex3f(1.0, 0.0, 0.0);
-                    glEnd();
-                glPopMatrix();
-            }
-            
-            else 
-            {
-                // draw white boxes on chess board
-                glColor3f(1.0, 1.0, 1.0);
-                glPushMatrix();
-                    glTranslatef(i, j, 0);
-                    glBegin(GL_QUADS);
-                        glVertex3f(0.0, 0.0, 0.0);
-                        glVertex3f(0.0, 1.0, 0.0);
-                        glVertex3f(1.0, 1.0, 0.0);
-                        glVertex3f(1.0, 0.0, 0.0);
-                    glEnd();
-                glPopMatrix();
-            }
-        }
-    }
+    // draw football field
+    // glColor3f(0.196078, 0.6, 0.8);
+    // glPushMatrix();
+    //     glBegin(GL_QUADS);
+    //         glVertex3f(-24.375, -55.0, 0.0);
+    //         glVertex3f(-24.375, 55.0, 0.0);
+    //         glVertex3f(24.375, 55.0, 0.0);
+    //         glVertex3f(24.375, -55.0, 0.0);
+    //     glEnd();
+    // glPopMatrix();
 
-    drawChessPieces();
 
     glutSwapBuffers(); // Make it all visible
 }
@@ -278,34 +149,21 @@ void renderScene(void)
 // User-input callbacks
 //
 // processNormalKeys: ESC, q, and Q cause program to exit
-// releaseNormalKeys: r, R, d, D, 
 // pressSpecialKey: Up arrow = forward motion, down arrow = backwards
 // releaseSpecialKey: Set incremental motion to zero
 //----------------------------------------------------------------------
 void processNormalKeys(unsigned char key, int xx, int yy)
 {
+    // if (key == ESC || key == 'q' || key == 'Q')
+    // {
+    //     exit(0);
+    // }
     switch (key)
     {
-        case ESC : exit(0); break;
-        case 'q' : exit(0); break;
-        case 'Q' : exit(0); break;
-        // case 'r' : 
-        case 'd' : deltaMove = -0.25; break;
-        case 'D' : deltaMove = -0.25; break;
-        case 'u' : deltaMove = 0.25; break;
-        case 'U' : deltaMove = 0.25; break;
-    }
-}
-
-void releaseNormalKeys(unsigned char key, int xx, int yy)
-{
-    switch (key)
-    {
-        // case 'r' : 
-        case 'd' : deltaMove = 0.0; break;
-        case 'D' : deltaMove = 0.0; break;
-        case 'u' : deltaMove = 0.0; break;
-        case 'U' : deltaMove = 0.0; break;
+        case ESC: exit(0);
+        case 'q': exit(0);
+        case 'Q': exit(0);
+        // case 'r': 
     }
 }
 
@@ -336,8 +194,8 @@ int main(int argc, char **argv)
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowPosition(100, 100);
-    glutInitWindowSize(600, 600);
-    glutCreateWindow("Chess Set");
+    glutInitWindowSize(400, 400);
+    glutCreateWindow("Super Bowl half-time Show");
     init();
     // register callbacks
     glutReshapeFunc(changeSize); // window reshape callback
@@ -345,10 +203,10 @@ int main(int argc, char **argv)
     glutIdleFunc(update); // incremental update
     glutIgnoreKeyRepeat(1); // ignore key repeat when holding key down
     glutKeyboardFunc(processNormalKeys); // process standard key clicks
-    glutKeyboardFunc(releaseNormalKeys);
     glutSpecialFunc(pressSpecialKey); // process special key pressed
                         // Warning: Nonstandard function! Delete if desired.
     glutSpecialUpFunc(releaseSpecialKey); // process special key release
+
 
     // enter GLUT event processing cycle
     glutMainLoop();
