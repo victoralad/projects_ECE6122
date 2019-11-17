@@ -17,9 +17,9 @@ Description:
 #define ESC 27
 
 GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
-// GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
-// GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
-// GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
+GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
+GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
+GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_diffuse[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat light1_specular[] = {0.3, 0.3, 0.3, 1.0};
 GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
@@ -35,9 +35,15 @@ void init(void)
 
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+
     glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, light0_specular);
+
+    glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient);
     glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
     glLightfv(GL_LIGHT1, GL_SPECULAR, light1_specular);
+
     glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
 
     glEnable(GL_LIGHTING);
@@ -223,9 +229,9 @@ void update(void)
         z += deltaMove;
     }
 
-    // light0Enable ? glDisable(GL_LIGHT0) : glEnable(GL_LIGHT0);
+    light0Enable ? glEnable(GL_LIGHT0) : glDisable(GL_LIGHT0);
 
-    // light1Enable ? glDisable(GL_LIGHT1) : glEnable(GL_LIGHT1); 
+    light1Enable ? glEnable(GL_LIGHT1) : glDisable(GL_LIGHT1); 
 
     glutPostRedisplay(); // redisplay everything
 }
@@ -316,8 +322,8 @@ void processNormalKeys(unsigned char key, int xx, int yy)
         case 'D' : deltaMove = -0.25; break;
         case 'u' : deltaMove = 0.25; break;
         case 'U' : deltaMove = 0.25; break;
-        // case '0' : printf("hey"); break; //light0Enable = light0Enable ? false : true ; break;
-        // case '1' : light1Enable = light1Enable ? false : true ; break;
+        case '0' : light0Enable = light0Enable ? false : true ; break;
+        case '1' : light1Enable = light1Enable ? false : true ; break;
     }
 }
 
@@ -330,24 +336,6 @@ void releaseNormalKeys(unsigned char key, int xx, int yy)
         case 'D' : deltaMove = 0.0; break;
         case 'u' : deltaMove = 0.0; break;
         case 'U' : deltaMove = 0.0; break;
-    }
-}
-
-void pressSpecialKey(int key, int xx, int yy)
-{
-    switch (key) 
-    {
-    case GLUT_KEY_UP: deltaMove = 0.5; break;
-    case GLUT_KEY_DOWN: deltaMove = -0.5; break;
-    }
-}
-
-void releaseSpecialKey(int key, int x, int y)
-{
-    switch (key) 
-    {
-    case GLUT_KEY_UP: deltaMove = 0.0; break;
-    case GLUT_KEY_DOWN: deltaMove = 0.0; break;
     }
 }
 
@@ -369,10 +357,7 @@ int main(int argc, char **argv)
     glutIdleFunc(update); // incremental update
     glutIgnoreKeyRepeat(1); // ignore key repeat when holding key down
     glutKeyboardFunc(processNormalKeys); // process standard key clicks
-    glutKeyboardFunc(releaseNormalKeys);
-    glutSpecialFunc(pressSpecialKey); // process special key pressed
-                        // Warning: Nonstandard function! Delete if desired.
-    glutSpecialUpFunc(releaseSpecialKey); // process special key release
+    glutKeyboardUpFunc(releaseNormalKeys);
 
     // enter GLUT event processing cycle
     glutMainLoop();
