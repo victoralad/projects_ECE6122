@@ -17,12 +17,16 @@ Description:
 #define ESC 27
 
 GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
+// GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
+// GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
+// GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_diffuse[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat light1_specular[] = {0.3, 0.3, 0.3, 1.0};
 GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
 GLfloat mat_shininess[] = {50.0};
-GLfloat light1_position[] = {-5.0, -5.0, 8.0};
+GLfloat light1_position[] = {5.0, 5.0, 8.0};
 GLdouble width = 0.75, depth = 0.75, height = 1.0;
+bool light0Enable = true, light1Enable = true;
 
 void init(void)
 {
@@ -190,6 +194,21 @@ void drawChessPieces()
             glutSolidTeapot(0.5);
         glPopMatrix();
     }
+
+    // Draw black queen
+    glPushMatrix();
+        glTranslatef(3.5, 7.5, height / 2);
+        glScalef(width / 2, depth / 2, height);
+        glRotatef(30, 0.0, 1.0, 0.0);
+        glutSolidTetrahedron();
+    glPopMatrix();
+
+    // Draw black king
+    glPushMatrix();
+        glTranslatef(4.5, 7.5, height / 2);
+        glScalef(width / 2, depth / 2, height);
+        glutSolidOctahedron();
+    glPopMatrix();
 }
 
 //----------------------------------------------------------------------
@@ -201,10 +220,13 @@ void drawChessPieces()
 void update(void)
 {
     if (deltaMove) { // update camera position
-        // x += deltaMove * lx * 0.25;
-        // y += deltaMove * ly * 0.25;
         z += deltaMove;
     }
+
+    // light0Enable ? glDisable(GL_LIGHT0) : glEnable(GL_LIGHT0);
+
+    // light1Enable ? glDisable(GL_LIGHT1) : glEnable(GL_LIGHT1); 
+
     glutPostRedisplay(); // redisplay everything
 }
 
@@ -294,6 +316,8 @@ void processNormalKeys(unsigned char key, int xx, int yy)
         case 'D' : deltaMove = -0.25; break;
         case 'u' : deltaMove = 0.25; break;
         case 'U' : deltaMove = 0.25; break;
+        // case '0' : printf("hey"); break; //light0Enable = light0Enable ? false : true ; break;
+        // case '1' : light1Enable = light1Enable ? false : true ; break;
     }
 }
 
