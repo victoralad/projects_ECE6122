@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Nov 12, 2019
+Last Date Modified: Nov 20, 2019
 Description:
     3D chess set model using OpenGL
 */
@@ -75,25 +75,7 @@ float deltaMove = 0.0; // initially camera doesn't move
 // Camera direction
 float lx = 4.0, ly = 4.0, lz = 0.0; 
 float angle = 0.0; // angle of rotation for the camera direction
-
-//----------------------------------------------------------------------
-// Reshape callback
-//
-// Window size has been set/changed to w by h pixels. Set the camera
-// perspective to 45 degree vertical field of view, a window aspect
-// ratio of w/h, a near clipping plane at depth 1, and a far clipping
-// plane at depth 100. The viewport is the entire window.
-//
-//----------------------------------------------------------------------
-void changeSize(int w, int h)
-{
-    float ratio = ((float)w) / ((float)h); // window aspect ratio
-    glMatrixMode(GL_PROJECTION); // projection matrix is active
-    glLoadIdentity(); // reset the projection
-    gluPerspective(43, ratio, 0.1, 30.0); // perspective transformation
-    glMatrixMode(GL_MODELVIEW); // return to modelview mode
-    glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
-}
+float deltaAngle = 0.0;
 
 //----------------------------------------------------------------------
 // Draw chess pieces (starting at the origin)
@@ -132,12 +114,21 @@ void drawChessPieces()
         glPopMatrix();
     }
 
+    // Draw white knight
+    for (i = 1; i < 7; i += 5) {
+        glPushMatrix();
+            glTranslatef(i + 0.5, 0.5, 0.45);
+            glScalef(width, depth * 0.8, height * 1.2);
+            glRotatef(90, 1.0, 0.0, 0.0);
+            glRotatef(90, 0.0, 1.0, 0.0);
+            glutSolidTeapot(0.5);
+        glPopMatrix();
+    }
+
     // Draw white queen
     glPushMatrix();
-        glTranslatef(3.5, 0.5, height / 2);
-        glScalef(width / 2, depth / 2, height);
-        // glTranslatef(3.5, 0.5, height / 3);
-        // glScaled(0.5, 0.5, 0.5);
+        glTranslatef(3.5, 0.5, height / 2.6);
+        glScalef(width / 2, depth / 2, height / 1.45);
         glRotatef(30, 0.0, 1.0, 0.0);
         glutSolidTetrahedron();
     glPopMatrix();
@@ -145,20 +136,10 @@ void drawChessPieces()
     // Draw white king
     glPushMatrix();
         glTranslatef(4.5, 0.5, height / 2);
-        glScalef(width / 2, depth / 2, height);
+        glScalef(width / 2, depth / 2, height / 2);
         glutSolidOctahedron();
     glPopMatrix();
 
-    // Draw white knight
-    for (i = 1; i < 7; i += 5) {
-        glPushMatrix();
-            glTranslatef(i + 0.5, 0.5, 0.5);
-            glScalef(width, depth * 0.8, height * 1.5);
-            glRotatef(90, 1.0, 0.0, 0.0);
-            glRotatef(90, 0.0, 1.0, 0.0);
-            glutSolidTeapot(0.5);
-        glPopMatrix();
-    }
 
     // ----------- Draw black chess pieces ----------- 
     glColor3f(150.0/255, 75.0/255, 0.0); // set drawing color to black
@@ -193,8 +174,8 @@ void drawChessPieces()
     // Draw black knight
     for (i = 1; i < 7; i += 5) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 7.5, 0.5);
-            glScalef(width, depth, height * 1.5);
+            glTranslatef(i + 0.5, 7.5, 0.45);
+            glScalef(width, depth, height * 1.2);
             glRotatef(90, 1.0, 0.0, 0.0);
             glRotatef(-90, 0.0, 1.0, 0.0);
             glutSolidTeapot(0.5);
@@ -203,8 +184,8 @@ void drawChessPieces()
 
     // Draw black queen
     glPushMatrix();
-        glTranslatef(3.5, 7.5, height / 2);
-        glScalef(width / 2, depth / 2, height);
+        glTranslatef(3.5, 7.5, height / 2.6);
+        glScalef(width / 2, depth / 2, height / 1.45);
         glRotatef(30, 0.0, 1.0, 0.0);
         glutSolidTetrahedron();
     glPopMatrix();
@@ -212,28 +193,9 @@ void drawChessPieces()
     // Draw black king
     glPushMatrix();
         glTranslatef(4.5, 7.5, height / 2);
-        glScalef(width / 2, depth / 2, height);
+        glScalef(width / 2, depth / 2, height / 2);
         glutSolidOctahedron();
     glPopMatrix();
-}
-
-//----------------------------------------------------------------------
-// Update with each idle event
-//
-// This incrementally moves the camera and requests that the scene be
-// redrawn.
-//----------------------------------------------------------------------
-void update(void)
-{
-    if (deltaMove) { // update camera position
-        z += deltaMove;
-    }
-
-    light0Enable ? glEnable(GL_LIGHT0) : glDisable(GL_LIGHT0);
-
-    light1Enable ? glEnable(GL_LIGHT1) : glDisable(GL_LIGHT1); 
-
-    glutPostRedisplay(); // redisplay everything
 }
 
 //----------------------------------------------------------------------
@@ -265,6 +227,7 @@ void renderScene(void)
     {
         for (j = 0; j < 8; j++)
         {
+            glNormal3f(0.0f, 0.0f, 1.0f);
             if ((i + j) % 2 == 0) 
             {
                 // draw black boxes on chess board
@@ -303,6 +266,34 @@ void renderScene(void)
 }
 
 //----------------------------------------------------------------------
+// Update with each idle event
+//
+// This incrementally moves the camera and requests that the scene be
+// redrawn.
+//----------------------------------------------------------------------
+void update(void)
+{
+    if (deltaAngle) 
+    { // camera's direction is set to angle + deltaAngle
+        angle = deltaAngle;
+        x += x*sin(angle);
+        y += y*sin(angle);
+        // glRotatef(-angle, 0.0f, 0.0f, 1.0f);
+    }
+
+    if (deltaMove) 
+    { // update camera position
+        z += deltaMove;
+    }
+
+    light0Enable ? glEnable(GL_LIGHT0) : glDisable(GL_LIGHT0);
+
+    light1Enable ? glEnable(GL_LIGHT1) : glDisable(GL_LIGHT1); 
+
+    glutPostRedisplay(); // redisplay everything
+}
+
+//----------------------------------------------------------------------
 // User-input callbacks
 //
 // processNormalKeys: ESC, q, and Q cause program to exit
@@ -317,13 +308,14 @@ void processNormalKeys(unsigned char key, int xx, int yy)
         case ESC : exit(0); break;
         case 'q' : exit(0); break;
         case 'Q' : exit(0); break;
-        // case 'r' : 
-        case 'd' : deltaMove = -0.25; break;
+        case 'r' : deltaAngle = -0.174533; break; // rotate the camera by 10 degrees (0.174533 radians)
+        case 'R' : deltaAngle = -0.174533; break;
+        case 'd' : deltaMove = -0.25; break; // move the position of the camera by 0.25
         case 'D' : deltaMove = -0.25; break;
         case 'u' : deltaMove = 0.25; break;
         case 'U' : deltaMove = 0.25; break;
-        case '0' : light0Enable = light0Enable ? false : true ; break;
-        case '1' : light1Enable = light1Enable ? false : true ; break;
+        case '0' : light0Enable = light0Enable ? false : true ; break; // enable and disable light0 lighting
+        case '1' : light1Enable = light1Enable ? false : true ; break; // enable and disable light1 lighting
     }
 }
 
@@ -331,12 +323,32 @@ void releaseNormalKeys(unsigned char key, int xx, int yy)
 {
     switch (key)
     {
-        // case 'r' : 
+        case 'r' : deltaAngle = 0.0; break;
+        case 'R' : deltaAngle = 0.0; break;
         case 'd' : deltaMove = 0.0; break;
         case 'D' : deltaMove = 0.0; break;
         case 'u' : deltaMove = 0.0; break;
         case 'U' : deltaMove = 0.0; break;
     }
+}
+
+//----------------------------------------------------------------------
+// Reshape callback
+//
+// Window size has been set/changed to w by h pixels. Set the camera
+// perspective to 45 degree vertical field of view, a window aspect
+// ratio of w/h, a near clipping plane at depth 1, and a far clipping
+// plane at depth 100. The viewport is the entire window.
+//
+//----------------------------------------------------------------------
+void changeSize(int w, int h)
+{
+    float ratio = ((float)w) / ((float)h); // window aspect ratio
+    glMatrixMode(GL_PROJECTION); // projection matrix is active
+    glLoadIdentity(); // reset the projection
+    gluPerspective(43, ratio, 0.1, 30.0); // perspective transformation
+    glMatrixMode(GL_MODELVIEW); // return to modelview mode
+    glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
 
 //----------------------------------------------------------------------

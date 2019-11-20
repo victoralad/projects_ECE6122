@@ -68,7 +68,7 @@ void init(void)
 //----------------------------------------------------------------------
 
 // Camera position
-float x = 15.0, y = 0.0, z = 50; // initially 5 units south of origin
+float x = 0.0, y = 55.0, z = 100; // initially 5 units south of origin
 float deltaMove = 0.0; // initially camera doesn't move
 
 // Camera direction
@@ -89,16 +89,33 @@ void changeSize(int w, int h)
     float ratio = ((float)w) / ((float)h); // window aspect ratio
     glMatrixMode(GL_PROJECTION); // projection matrix is active
     glLoadIdentity(); // reset the projection
-    gluPerspective(105, ratio, 0.1, 100.0); // perspective transformation
+    gluPerspective(60, ratio, 0.1, 100.0); // perspective transformation
     glMatrixMode(GL_MODELVIEW); // return to modelview mode
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
 
 //----------------------------------------------------------------------
-// Draw Football field (starting at the origin)
+// Draw UAVs
 // ----------------------------------------------------------------------
-void drawFootballField()
+void drawUAVs()
 {
+    glColor3f(0.8, 0.1, 0.1);
+    glPushMatrix();
+        glTranslatef(-20, 0, 0);
+        glScalef(width, depth, height);
+        glutSolidCone(height / 0.2, height * 10, 20, 20);
+    glPopMatrix();
+    // for (int i = 0; i < 50; i += 48) 
+    // {
+    //     for (int j = 0; j < 111; i += 55)
+    //     {
+    //         glPushMatrix();
+    //             glTranslatef(j + 0.5, i + 0.5, 0);
+    //             glScalef(width, depth, height);
+    //             glutSolidCone(height / 2, height, 20, 20);
+    //         glPopMatrix();
+    //     }
+    // }
 }
 
 //----------------------------------------------------------------------
@@ -110,8 +127,8 @@ void drawFootballField()
 void update(void)
 {
     if (deltaMove) { // update camera position
-        x += deltaMove * lx * 0.1;
-        y += deltaMove * ly * 0.1;
+        x += deltaMove;
+        z += deltaMove * 1.2;
     }
     glutPostRedisplay(); // redisplay everything
 }
@@ -124,7 +141,6 @@ void update(void)
 //----------------------------------------------------------------------
 void renderScene(void)
 {
-    int i, j;
 
      // Clear color and depth buffers
     glClearColor(0.7, 0.8, 1.0, 1.0); // background color is blue
@@ -144,13 +160,14 @@ void renderScene(void)
     glColor3f(0.1, 0.6, 0.1);
     glPushMatrix();
         glBegin(GL_QUADS);
-            glVertex3f(-24.375, -55.0, 0.0);
-            glVertex3f(-24.375, 55.0, 0.0);
-            glVertex3f(24.375, 55.0, 0.0);
-            glVertex3f(24.375, -55.0, 0.0);
+            glVertex3f(-55.0, -24.375, 0.0);
+            glVertex3f(-55.0, 24.375, 0.0);
+            glVertex3f(55.0, 24.375, 0.0);
+            glVertex3f(55.0, -24.375, 0.0);
         glEnd();
     glPopMatrix();
 
+    drawUAVs();
 
     glutSwapBuffers(); // Make it all visible
 }
@@ -181,8 +198,8 @@ void pressSpecialKey(int key, int xx, int yy)
 {
     switch (key) 
     {
-    case GLUT_KEY_UP: deltaMove = 0.5; break;
-    case GLUT_KEY_DOWN: deltaMove = -0.5; break;
+    case GLUT_KEY_UP: deltaMove = 0.1; break;
+    case GLUT_KEY_DOWN: deltaMove = -0.1; break;
     }
 }
 
