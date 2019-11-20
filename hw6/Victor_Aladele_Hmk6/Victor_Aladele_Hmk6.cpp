@@ -11,6 +11,7 @@ Description:
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h> // standard definitions
+#include <vector>
 
 
 
@@ -27,6 +28,31 @@ GLfloat mat_shininess[] = {50.0};
 GLfloat light1_position[] = {5.0, 5.0, 8.0};
 GLdouble width = 0.75, depth = 0.75, height = 1.0;
 bool light0Enable = true, light1Enable = true;
+
+std::vector<std::vector<int> > freeSpot(8, std::vector<int> (8, 1));
+
+//----------------------------------------------------------------------
+// Global variables
+//
+// The coordinate system is set up so that the (x,y)-coordinate plane
+// is the ground, and the z-axis is directed upwards. The y-axis points
+// to the north and the x-axis points to the east.
+//
+// The values (x,y, z) are the current camera position. The values (lx, ly, lz)
+// point in the direction the camera is looking. The variables angle and
+// deltaAngle control the camera's angle. The variable deltaMove
+// indicates the amount of incremental motion for the camera with each
+// redraw cycle. 
+//----------------------------------------------------------------------
+
+// Camera position
+float x = 4.0, y = -5.0, z = 10; // initially 5 units south of origin
+float deltaMove = 0.0; // initially camera doesn't move
+
+// Camera direction
+float lx = 4.0, ly = 4.0, lz = 0.0; 
+float angle = 0.0; // angle of rotation for the camera direction
+float deltaAngle = 0.0;
 
 void init(void)
 {
@@ -54,28 +80,25 @@ void init(void)
     glEnable(GL_DEPTH_TEST);
 }
 
-//----------------------------------------------------------------------
-// Global variables
-//
-// The coordinate system is set up so that the (x,y)-coordinate plane
-// is the ground, and the z-axis is directed upwards. The y-axis points
-// to the north and the x-axis points to the east.
-//
-// The values (x,y, z) are the current camera position. The values (lx, ly, lz)
-// point in the direction the camera is looking. The variables angle and
-// deltaAngle control the camera's angle. The variable deltaMove
-// indicates the amount of incremental motion for the camera with each
-// redraw cycle. 
-//----------------------------------------------------------------------
+// print state of the chessboard (debug function)
+void printFreeSpot()
+{
+    std::cout << "------- State of Chessboard -------" << std::endl;
+    for (int i = 0; i < 8; ++i)
+    {
+        for (int j = 0; j < 8; ++j)
+        {
+            std::cout << freeSpot[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
 
-// Camera position
-float x = 4.0, y = -5.0, z = 10; // initially 5 units south of origin
-float deltaMove = 0.0; // initially camera doesn't move
-
-// Camera direction
-float lx = 4.0, ly = 4.0, lz = 0.0; 
-float angle = 0.0; // angle of rotation for the camera direction
-float deltaAngle = 0.0;
+// Update information about a spot; whether it is free or occupied
+void updateSpotInfo(int y, int x, int openSpot)
+{
+    freeSpot[7 - x][y] = openSpot;
+}
 
 //----------------------------------------------------------------------
 // Draw chess pieces (starting at the origin)
@@ -94,6 +117,7 @@ void drawChessPieces()
             glScalef(width, depth, height);
             glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
+        updateSpotInfo(i, 1, 0); // set flag to indicate position is occupied
     }
 
     // Draw white rooks
@@ -103,6 +127,7 @@ void drawChessPieces()
             glScalef(width, depth, height);
             glutSolidCube(height);
         glPopMatrix();
+        updateSpotInfo(i, 0, 0); // set flag to indicate position is occupied
     }
 
     // Draw white bishops
@@ -112,6 +137,7 @@ void drawChessPieces()
             glScalef(width, depth, height);
             glutSolidCone(height / 2, height, 20, 20);
         glPopMatrix();
+        updateSpotInfo(i, 0, 0); // set flag to indicate position is occupied
     }
 
     // Draw white knight
@@ -123,6 +149,7 @@ void drawChessPieces()
             glRotatef(90, 0.0, 1.0, 0.0);
             glutSolidTeapot(0.5);
         glPopMatrix();
+        updateSpotInfo(i, 0, 0); // set flag to indicate position is occupied
     }
 
     // Draw white queen
@@ -132,6 +159,7 @@ void drawChessPieces()
         glRotatef(30, 0.0, 1.0, 0.0);
         glutSolidTetrahedron();
     glPopMatrix();
+    updateSpotInfo(3, 0, 0); // set flag to indicate position is occupied
 
     // Draw white king
     glPushMatrix();
@@ -139,6 +167,7 @@ void drawChessPieces()
         glScalef(width / 2, depth / 2, height / 2);
         glutSolidOctahedron();
     glPopMatrix();
+    updateSpotInfo(4, 0, 0); // set flag to indicate position is occupied
 
 
     // ----------- Draw black chess pieces ----------- 
@@ -151,6 +180,7 @@ void drawChessPieces()
             glScalef(width, depth, height);
             glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
+        updateSpotInfo(i, 6, 0); // set flag to indicate position is occupied
     }
 
     // Draw black rooks
@@ -160,6 +190,7 @@ void drawChessPieces()
             glScalef(width, depth, height);
             glutSolidCube(height);
         glPopMatrix();
+        updateSpotInfo(i, 7, 0); // set flag to indicate position is occupied
     }
 
     // Draw black bishops
@@ -169,6 +200,7 @@ void drawChessPieces()
             glScalef(width, depth, height);
             glutSolidCone(height / 2, height, 20, 20);
         glPopMatrix();
+        updateSpotInfo(i, 7, 0); // set flag to indicate position is occupied
     }
     
     // Draw black knight
@@ -180,6 +212,7 @@ void drawChessPieces()
             glRotatef(-90, 0.0, 1.0, 0.0);
             glutSolidTeapot(0.5);
         glPopMatrix();
+        updateSpotInfo(i, 7, 0); // set flag to indicate position is occupied
     }
 
     // Draw black queen
@@ -189,6 +222,7 @@ void drawChessPieces()
         glRotatef(30, 0.0, 1.0, 0.0);
         glutSolidTetrahedron();
     glPopMatrix();
+    updateSpotInfo(3, 7, 0); // set flag to indicate position is occupied
 
     // Draw black king
     glPushMatrix();
@@ -196,6 +230,7 @@ void drawChessPieces()
         glScalef(width / 2, depth / 2, height / 2);
         glutSolidOctahedron();
     glPopMatrix();
+    updateSpotInfo(4, 7, 0); // set flag to indicate position is occupied
 }
 
 //----------------------------------------------------------------------
@@ -261,7 +296,7 @@ void renderScene(void)
     }
 
     drawChessPieces();
-
+    printFreeSpot();
     glutSwapBuffers(); // Make it all visible
 }
 
