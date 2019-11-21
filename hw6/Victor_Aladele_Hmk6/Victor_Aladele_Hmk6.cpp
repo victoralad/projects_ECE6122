@@ -55,6 +55,7 @@ bool light0Enable = true, light1Enable = true;
 std::vector<std::vector<int> > freeSpot(8, std::vector<int> (8, 1));
 bool movePawn = false;
 std::vector<int> whitePawnY(8, 1);
+std::vector<int> blackPawnY(8, 6);
 
 
 void init(void)
@@ -105,7 +106,7 @@ void changeSize(int w, int h)
 // print state of the chessboard (debug function)
 void printFreeSpot()
 {
-    std::cout << "------- State of Chessboard -------" << std::endl;
+    std::cout << "------- State of Chessboard -------" << -2 % 8 << std::endl;
     for (int i = 0; i < 8; ++i)
     {
         for (int j = 0; j < 8; ++j)
@@ -125,7 +126,26 @@ void updateSpotInfo(int y, int x, int openSpot)
 // Move pawn forward
 void movePawnFunc()
 {
-    whitePawnY[0] = (whitePawnY[0] + 1) % 8;
+    for (int i = 0; i < 8; ++i)
+    {
+        // move white pawn forward
+        if (freeSpot[7 - (whitePawnY[i] + 1) % 8][i])
+        {
+            freeSpot[7 - whitePawnY[i]][i] = 1;
+            whitePawnY[i] = (whitePawnY[i] + 1) % 8;
+            freeSpot[7 - whitePawnY[i]][i] = 0;
+            break;
+        }
+        // move black pawn forward
+        else if (freeSpot[7 - (blackPawnY[i] - 1) % 8][i])
+        {
+            freeSpot[7 - blackPawnY[i]][i] = 1;
+            blackPawnY[i] = (blackPawnY[i] - 1) % 8;
+            freeSpot[7 - blackPawnY[i]][i] = 0;
+            break;
+        }
+    }
+
     movePawn = false;
 }
 
@@ -200,8 +220,6 @@ void releaseNormalKeys(unsigned char key, int xx, int yy)
         case 'D' : deltaMove = 0.0; break;
         case 'u' : deltaMove = 0.0; break;
         case 'U' : deltaMove = 0.0; break;
-        case 'p' : movePawn = false; break;
-        case 'P' : movePawn = false; break;
     }
 }
 
@@ -281,11 +299,11 @@ void drawChessPieces()
     // Draw black pawn pieces
     for (i = 0; i < 8; ++i) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 6.5, height / 2);
+            glTranslatef(i + 0.5, blackPawnY[i] + 0.5, height / 2);
             glScalef(width, depth, height);
             glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
-        updateSpotInfo(i, 6, 0); // set flag to indicate position is occupied
+        updateSpotInfo(i, blackPawnY[i], 0); // set flag to indicate position is occupied
     }
 
     // Draw black rooks
