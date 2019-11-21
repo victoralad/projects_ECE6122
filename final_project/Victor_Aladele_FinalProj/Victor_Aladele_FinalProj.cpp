@@ -68,11 +68,11 @@ void init(void)
 //----------------------------------------------------------------------
 
 // Camera position
-float x = 0.0, y = 55.0, z = 100; // initially 5 units south of origin
+float x = 55.0, y = -24.0, z = 30; // initially 5 units south of origin
 float deltaMove = 0.0; // initially camera doesn't move
 
 // Camera direction
-float lx = 0.0, ly = 0.0, lz = 0.0; 
+float lx = 55.0, ly = 24.0, lz = -50.0; 
 float angle = 0.0; // angle of rotation for the camera direction
 
 //----------------------------------------------------------------------
@@ -89,7 +89,7 @@ void changeSize(int w, int h)
     float ratio = ((float)w) / ((float)h); // window aspect ratio
     glMatrixMode(GL_PROJECTION); // projection matrix is active
     glLoadIdentity(); // reset the projection
-    gluPerspective(60, ratio, 0.1, 100.0); // perspective transformation
+    gluPerspective(120, ratio, 0.1, 30.0); // perspective transformation
     glMatrixMode(GL_MODELVIEW); // return to modelview mode
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
@@ -154,7 +154,7 @@ void renderScene(void)
     gluLookAt(
         x, y, z,
         lx, ly, lz,
-        0.0, 0.0, 1.0);
+        0.0, 1.0, 0.0);
 
     // draw football field
     glColor3f(0.1, 0.6, 0.1);

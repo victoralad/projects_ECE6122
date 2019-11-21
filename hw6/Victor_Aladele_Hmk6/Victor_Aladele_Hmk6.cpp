@@ -26,10 +26,7 @@ Description:
 // to the north and the x-axis points to the east.
 //
 // The values (x,y, z) are the current camera position. The values (lx, ly, lz)
-// point in the direction the camera is looking. The variables angle and
-// deltaAngle control the camera's angle. The variable deltaMove
-// indicates the amount of incremental motion for the camera with each
-// redraw cycle. 
+// point in the direction the camera is looking. 
 //----------------------------------------------------------------------
 
 // Camera position
@@ -38,8 +35,8 @@ float deltaMove = 0.0; // initially camera doesn't move
 
 // Camera direction
 float lx = 4.0, ly = 4.0, lz = 0.0; 
-float angle = 0.0; // angle of rotation for the camera direction
-float deltaAngle = 0.0;
+
+float angle = 0.0; // initial orientation of the chessboard
 
 GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
 GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
@@ -54,10 +51,13 @@ GLdouble width = 0.75, depth = 0.75, height = 1.0;
 bool light0Enable = true, light1Enable = true;
 
 std::vector<std::vector<int> > freeSpot(8, std::vector<int> (8, 1));
-bool movePawn = false;
-std::vector<int> whitePawnY(8, 1);
+std::vector<int> whitePawnY(8, 1); // y positions of white pawns
 std::vector<int> blackPawnY(8, 6);
-
+std::vector<int> knightsX{1, 6, 1, 6}; // x positions of knights (white knights first)
+std::vector<int> knightsY{0, 0, 7, 7};
+bool rotateBoard = false;
+bool movePawn = false;
+bool moveKnight = false;
 
 void init(void)
 {
@@ -110,7 +110,7 @@ void changeSize(int w, int h)
 // print state of the chessboard (debug function)
 void printFreeSpot()
 {
-    std::cout << "------- State of Chessboard (black->up, white->down) -------" << std::endl;
+    std::cout << "------- State of Chessboard (black->top, white->bottom) -------" << std::endl;
     for (int i = 0; i < 8; ++i)
     {
         for (int j = 0; j < 8; ++j)
@@ -137,7 +137,6 @@ void movePawnFunc()
         int pawnColor = getRandNum / 8;
         int i = getRandNum % 8;
 
-        // std::cout << pawnColor << " " << i << std::endl;
         // move white pawn forward
         if (freeSpot[7 - (whitePawnY[i] + 1) % 8][i] && pawnColor == 0)
         {
@@ -156,8 +155,35 @@ void movePawnFunc()
         }
         count++;
     }
+}
 
-    movePawn = false;
+void moveKnightFunc()
+{
+    int count = 0;
+    while (count < 4)
+    {
+        int getRandNum = rand() % 4;
+        int pawnColor = getRandNum / 2;
+        int i = getRandNum % 2;
+
+        // move white pawn forward
+        if (freeSpot[7 - (whitePawnY[i] + 1) % 8][i] && pawnColor == 0)
+        {
+            freeSpot[7 - whitePawnY[i]][i] = 1;
+            whitePawnY[i] = (whitePawnY[i] + 1) % 8;
+            freeSpot[7 - whitePawnY[i]][i] = 0;
+            break;
+        }
+        // move black pawn forward
+        else if (freeSpot[7 - (blackPawnY[i] - 1) % 8][i] && pawnColor == 1)
+        {
+            freeSpot[7 - blackPawnY[i]][i] = 1;
+            blackPawnY[i] = (blackPawnY[i] - 1) % 8;
+            freeSpot[7 - blackPawnY[i]][i] = 0;
+            break;
+        }
+        count++;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -168,13 +194,13 @@ void movePawnFunc()
 //----------------------------------------------------------------------
 void update(void)
 {
-    if (deltaAngle) 
-    { // camera's direction is set to angle + deltaAngle
-        angle = deltaAngle;
-        x += x*sin(angle);
-        y += y*sin(angle);
-        // glRotatef(-angle, 0.0f, 0.0f, 1.0f);
+    if (rotateBoard)
+    {
+        // rotate chessboard
+        angle += 10.0;
+        rotateBoard = false;
     }
+
 
     if (deltaMove) 
     { // update camera position
@@ -188,6 +214,7 @@ void update(void)
     if (movePawn) 
     {
         movePawnFunc();
+        movePawn = false;
     }
 
     glutPostRedisplay(); // redisplay everything
@@ -208,14 +235,16 @@ void processNormalKeys(unsigned char key, int xx, int yy)
         case ESC : exit(0); break;
         case 'q' : exit(0); break;
         case 'Q' : exit(0); break;
-        case 'r' : deltaAngle = -0.174533; break; // rotate the camera by 10 degrees (0.174533 radians)
-        case 'R' : deltaAngle = -0.174533; break;
+        case 'r' : rotateBoard = true; break; // rotate the camera by 10 degrees (0.174533 radians)
+        case 'R' : rotateBoard = true; break;
         case 'd' : deltaMove = -0.25; break; // move the position of the camera by 0.25
         case 'D' : deltaMove = -0.25; break;
         case 'u' : deltaMove = 0.25; break;
         case 'U' : deltaMove = 0.25; break;
         case '0' : light0Enable = light0Enable ? false : true ; break; // enable and disable light0 lighting
         case '1' : light1Enable = light1Enable ? false : true ; break; // enable and disable light1 lighting
+        case 'k' : moveKnight = true; break;
+        case 'K' : moveKnight = true; break;
         case 'p' : movePawn = true; break;
         case 'P' : movePawn = true; break;
     }
@@ -225,8 +254,6 @@ void releaseNormalKeys(unsigned char key, int xx, int yy)
 {
     switch (key)
     {
-        case 'r' : deltaAngle = 0.0; break;
-        case 'R' : deltaAngle = 0.0; break;
         case 'd' : deltaMove = 0.0; break;
         case 'D' : deltaMove = 0.0; break;
         case 'u' : deltaMove = 0.0; break;
@@ -275,15 +302,15 @@ void drawChessPieces()
     }
 
     // Draw white knight
-    for (i = 1; i < 7; i += 5) {
+    for (i = 0; i < 2; ++i) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 0.5, 0.45);
+            glTranslatef(knightsX[i] + 0.5, knightsY[i] + 0.5, 0.45);
             glScalef(width, depth * 0.8, height * 1.2);
             glRotatef(90, 1.0, 0.0, 0.0);
             glRotatef(90, 0.0, 1.0, 0.0);
             glutSolidTeapot(0.5);
         glPopMatrix();
-        updateSpotInfo(i, 0, 0); // set flag to indicate position is occupied
+        updateSpotInfo(knightsX[i], knightsY[i], 0); // set flag to indicate position is occupied
     }
 
     // Draw white queen
@@ -338,15 +365,15 @@ void drawChessPieces()
     }
     
     // Draw black knight
-    for (i = 1; i < 7; i += 5) {
+    for (i = 2; i < 4; ++i) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 7.5, 0.45);
-            glScalef(width, depth, height * 1.2);
+            glTranslatef(knightsX[i] + 0.5, knightsY[i] + 0.5, 0.45);
+            glScalef(width, depth * 0.8, height * 1.2);
             glRotatef(90, 1.0, 0.0, 0.0);
-            glRotatef(-90, 0.0, 1.0, 0.0);
+            glRotatef(90, 0.0, 1.0, 0.0);
             glutSolidTeapot(0.5);
         glPopMatrix();
-        updateSpotInfo(i, 7, 0); // set flag to indicate position is occupied
+        updateSpotInfo(knightsX[i], knightsY[i], 0); // set flag to indicate position is occupied
     }
 
     // Draw black queen
@@ -391,6 +418,11 @@ void renderScene(void)
         lx, ly, lz,
         0.0, 0.0, 1.0);
 
+    // translate the camera direction before rotating, then translate back
+    glTranslatef(lx, ly, lz);
+    glRotatef(angle, 0.0, 0.0, 1.0); // rotate chessboard
+    glTranslatef(-lx, -ly, -lz);
+
     // draw chess board
     for (i = 0; i < 8; i++)
     {
@@ -429,8 +461,9 @@ void renderScene(void)
         }
     }
 
+    
     drawChessPieces();
-    printFreeSpot();
+    // printFreeSpot();
     glutSwapBuffers(); // Make it all visible
 }
 
