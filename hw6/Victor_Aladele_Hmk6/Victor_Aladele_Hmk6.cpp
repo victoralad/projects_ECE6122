@@ -17,20 +17,6 @@ Description:
 
 #define ESC 27
 
-GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
-GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
-GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
-GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
-GLfloat light1_diffuse[] = {0.5, 0.5, 0.5, 1.0};
-GLfloat light1_specular[] = {0.3, 0.3, 0.3, 1.0};
-GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
-GLfloat mat_shininess[] = {50.0};
-GLfloat light1_position[] = {5.0, 5.0, 8.0};
-GLdouble width = 0.75, depth = 0.75, height = 1.0;
-bool light0Enable = true, light1Enable = true;
-
-std::vector<std::vector<int> > freeSpot(8, std::vector<int> (8, 1));
-
 //----------------------------------------------------------------------
 // Global variables
 //
@@ -53,6 +39,23 @@ float deltaMove = 0.0; // initially camera doesn't move
 float lx = 4.0, ly = 4.0, lz = 0.0; 
 float angle = 0.0; // angle of rotation for the camera direction
 float deltaAngle = 0.0;
+
+GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
+GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
+GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
+GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
+GLfloat light1_diffuse[] = {0.5, 0.5, 0.5, 1.0};
+GLfloat light1_specular[] = {0.3, 0.3, 0.3, 1.0};
+GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat mat_shininess[] = {50.0};
+GLfloat light1_position[] = {5.0, 5.0, 8.0};
+GLdouble width = 0.75, depth = 0.75, height = 1.0;
+bool light0Enable = true, light1Enable = true;
+
+std::vector<std::vector<int> > freeSpot(8, std::vector<int> (8, 1));
+bool movePawn = false;
+std::vector<int> whitePawnY(8, 1);
+
 
 void init(void)
 {
@@ -80,6 +83,25 @@ void init(void)
     glEnable(GL_DEPTH_TEST);
 }
 
+//----------------------------------------------------------------------
+// Reshape callback
+//
+// Window size has been set/changed to w by h pixels. Set the camera
+// perspective to 45 degree vertical field of view, a window aspect
+// ratio of w/h, a near clipping plane at depth 1, and a far clipping
+// plane at depth 100. The viewport is the entire window.
+//
+//----------------------------------------------------------------------
+void changeSize(int w, int h)
+{
+    float ratio = ((float)w) / ((float)h); // window aspect ratio
+    glMatrixMode(GL_PROJECTION); // projection matrix is active
+    glLoadIdentity(); // reset the projection
+    gluPerspective(43, ratio, 0.1, 30.0); // perspective transformation
+    glMatrixMode(GL_MODELVIEW); // return to modelview mode
+    glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
+}
+
 // print state of the chessboard (debug function)
 void printFreeSpot()
 {
@@ -100,6 +122,89 @@ void updateSpotInfo(int y, int x, int openSpot)
     freeSpot[7 - x][y] = openSpot;
 }
 
+// Move pawn forward
+void movePawnFunc()
+{
+    whitePawnY[0] = (whitePawnY[0] + 1) % 8;
+    movePawn = false;
+}
+
+//----------------------------------------------------------------------
+// Update with each idle event
+//
+// This incrementally moves the camera and requests that the scene be
+// redrawn.
+//----------------------------------------------------------------------
+void update(void)
+{
+    if (deltaAngle) 
+    { // camera's direction is set to angle + deltaAngle
+        angle = deltaAngle;
+        x += x*sin(angle);
+        y += y*sin(angle);
+        // glRotatef(-angle, 0.0f, 0.0f, 1.0f);
+    }
+
+    if (deltaMove) 
+    { // update camera position
+        z += deltaMove;
+    }
+
+    light0Enable ? glEnable(GL_LIGHT0) : glDisable(GL_LIGHT0);
+
+    light1Enable ? glEnable(GL_LIGHT1) : glDisable(GL_LIGHT1); 
+
+    if (movePawn) 
+    {
+        movePawnFunc();
+    }
+
+    glutPostRedisplay(); // redisplay everything
+}
+
+//----------------------------------------------------------------------
+// User-input callbacks
+//
+// processNormalKeys: ESC, q, and Q cause program to exit
+// releaseNormalKeys: r, R, d, D, 
+// pressSpecialKey: Up arrow = forward motion, down arrow = backwards
+// releaseSpecialKey: Set incremental motion to zero
+//----------------------------------------------------------------------
+void processNormalKeys(unsigned char key, int xx, int yy)
+{
+    switch (key)
+    {
+        case ESC : exit(0); break;
+        case 'q' : exit(0); break;
+        case 'Q' : exit(0); break;
+        case 'r' : deltaAngle = -0.174533; break; // rotate the camera by 10 degrees (0.174533 radians)
+        case 'R' : deltaAngle = -0.174533; break;
+        case 'd' : deltaMove = -0.25; break; // move the position of the camera by 0.25
+        case 'D' : deltaMove = -0.25; break;
+        case 'u' : deltaMove = 0.25; break;
+        case 'U' : deltaMove = 0.25; break;
+        case '0' : light0Enable = light0Enable ? false : true ; break; // enable and disable light0 lighting
+        case '1' : light1Enable = light1Enable ? false : true ; break; // enable and disable light1 lighting
+        case 'p' : movePawn = true; break;
+        case 'P' : movePawn = true; break;
+    }
+}
+
+void releaseNormalKeys(unsigned char key, int xx, int yy)
+{
+    switch (key)
+    {
+        case 'r' : deltaAngle = 0.0; break;
+        case 'R' : deltaAngle = 0.0; break;
+        case 'd' : deltaMove = 0.0; break;
+        case 'D' : deltaMove = 0.0; break;
+        case 'u' : deltaMove = 0.0; break;
+        case 'U' : deltaMove = 0.0; break;
+        case 'p' : movePawn = false; break;
+        case 'P' : movePawn = false; break;
+    }
+}
+
 //----------------------------------------------------------------------
 // Draw chess pieces (starting at the origin)
 // White pieces drawn first followed by black pieces
@@ -113,11 +218,11 @@ void drawChessPieces()
     // Draw white pawn pieces
     for (i = 0; i < 8; ++i) {
         glPushMatrix();
-            glTranslatef(i + 0.5, 1.5, height / 2);
+            glTranslatef(i + 0.5, whitePawnY[i] + 0.5, height / 2);
             glScalef(width, depth, height);
             glutSolidSphere(height / 2, 20, 20);
         glPopMatrix();
-        updateSpotInfo(i, 1, 0); // set flag to indicate position is occupied
+        updateSpotInfo(i, whitePawnY[i], 0); // set flag to indicate position is occupied
     }
 
     // Draw white rooks
@@ -298,92 +403,6 @@ void renderScene(void)
     drawChessPieces();
     printFreeSpot();
     glutSwapBuffers(); // Make it all visible
-}
-
-//----------------------------------------------------------------------
-// Update with each idle event
-//
-// This incrementally moves the camera and requests that the scene be
-// redrawn.
-//----------------------------------------------------------------------
-void update(void)
-{
-    if (deltaAngle) 
-    { // camera's direction is set to angle + deltaAngle
-        angle = deltaAngle;
-        x += x*sin(angle);
-        y += y*sin(angle);
-        // glRotatef(-angle, 0.0f, 0.0f, 1.0f);
-    }
-
-    if (deltaMove) 
-    { // update camera position
-        z += deltaMove;
-    }
-
-    light0Enable ? glEnable(GL_LIGHT0) : glDisable(GL_LIGHT0);
-
-    light1Enable ? glEnable(GL_LIGHT1) : glDisable(GL_LIGHT1); 
-
-    glutPostRedisplay(); // redisplay everything
-}
-
-//----------------------------------------------------------------------
-// User-input callbacks
-//
-// processNormalKeys: ESC, q, and Q cause program to exit
-// releaseNormalKeys: r, R, d, D, 
-// pressSpecialKey: Up arrow = forward motion, down arrow = backwards
-// releaseSpecialKey: Set incremental motion to zero
-//----------------------------------------------------------------------
-void processNormalKeys(unsigned char key, int xx, int yy)
-{
-    switch (key)
-    {
-        case ESC : exit(0); break;
-        case 'q' : exit(0); break;
-        case 'Q' : exit(0); break;
-        case 'r' : deltaAngle = -0.174533; break; // rotate the camera by 10 degrees (0.174533 radians)
-        case 'R' : deltaAngle = -0.174533; break;
-        case 'd' : deltaMove = -0.25; break; // move the position of the camera by 0.25
-        case 'D' : deltaMove = -0.25; break;
-        case 'u' : deltaMove = 0.25; break;
-        case 'U' : deltaMove = 0.25; break;
-        case '0' : light0Enable = light0Enable ? false : true ; break; // enable and disable light0 lighting
-        case '1' : light1Enable = light1Enable ? false : true ; break; // enable and disable light1 lighting
-    }
-}
-
-void releaseNormalKeys(unsigned char key, int xx, int yy)
-{
-    switch (key)
-    {
-        case 'r' : deltaAngle = 0.0; break;
-        case 'R' : deltaAngle = 0.0; break;
-        case 'd' : deltaMove = 0.0; break;
-        case 'D' : deltaMove = 0.0; break;
-        case 'u' : deltaMove = 0.0; break;
-        case 'U' : deltaMove = 0.0; break;
-    }
-}
-
-//----------------------------------------------------------------------
-// Reshape callback
-//
-// Window size has been set/changed to w by h pixels. Set the camera
-// perspective to 45 degree vertical field of view, a window aspect
-// ratio of w/h, a near clipping plane at depth 1, and a far clipping
-// plane at depth 100. The viewport is the entire window.
-//
-//----------------------------------------------------------------------
-void changeSize(int w, int h)
-{
-    float ratio = ((float)w) / ((float)h); // window aspect ratio
-    glMatrixMode(GL_PROJECTION); // projection matrix is active
-    glLoadIdentity(); // reset the projection
-    gluPerspective(43, ratio, 0.1, 30.0); // perspective transformation
-    glMatrixMode(GL_MODELVIEW); // return to modelview mode
-    glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
 
 //----------------------------------------------------------------------
