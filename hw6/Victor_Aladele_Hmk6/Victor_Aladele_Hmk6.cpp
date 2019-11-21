@@ -55,6 +55,8 @@ std::vector<int> whitePawnY(8, 1); // y positions of white pawns
 std::vector<int> blackPawnY(8, 6);
 std::vector<int> knightsX{1, 6, 1, 6}; // x positions of knights (white knights first)
 std::vector<int> knightsY{0, 0, 7, 7};
+std::vector<int> pXMoves{ 2, 1, -1, -2, -2, -1, 1, 2 }; // possible Knight moves
+std::vector<int> pYMoves{ 1, 2, 2, 1, -1, -2, -2, -1 }; 
 bool rotateBoard = false;
 bool movePawn = false;
 bool moveKnight = false;
@@ -131,19 +133,30 @@ void updateSpotInfo(int y, int x, int openSpot)
 void moveKnightFunc()
 {
     int count = 0;
+    bool knightMoved = false;
     while (count < 4)
     {
         int i = rand() % 4;
-        std::cout << i << std::endl;
-        if (7 - (knightsY[i] + 2) >= 0 && knightsX[i] - 1 >= 0 && freeSpot[7 - (knightsY[i] + 2)][knightsX[i] - 1])
+        // std::cout << i << " " << 7 - (knightsY[i] + 2) << " " << knightsX[i] - 1 << std::endl;
+        for (int j = 0; j < 8; ++j)
         {
-            std::cout << i << " " << 7 - (knightsY[i] + 2) << " " << knightsX[i] - 1 << std::endl;
-            freeSpot[7 - knightsY[i]][knightsX[i]] = 1;
-            knightsY[i] = (knightsY[i] + 2) % 8;
-            knightsX[i] = (knightsX[i] - 1) % 8;
-            freeSpot[7 - knightsY[i]][knightsX[i]] = 0;
+            if (7 - (knightsY[i] + pYMoves[j]) >= 0 && knightsX[i] + pXMoves[j] >= 0 && freeSpot[7 - (knightsY[i] + pYMoves[j])][knightsX[i] + pXMoves[j]])
+            {
+                std::cout << i << " " << 7 - (knightsY[i] + pYMoves[j]) << " " << knightsX[i] + pXMoves[j] << std::endl;
+                freeSpot[7 - knightsY[i]][knightsX[i]] = 1;
+                knightsY[i] = knightsY[i] + pYMoves[j];
+                knightsX[i] = knightsX[i] + pXMoves[j];
+                freeSpot[7 - knightsY[i]][knightsX[i]] = 0;
+                knightMoved = true;
+                break;
+            }
+        }
+        
+        if (knightMoved)
+        {
             break;
         }
+        
         // int getRandNum = rand() % 4;
         // int knightColor = getRandNum / 2;
         // int i = getRandNum;// % 2;
