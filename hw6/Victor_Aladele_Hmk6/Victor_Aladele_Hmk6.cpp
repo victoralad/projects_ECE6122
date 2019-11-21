@@ -12,6 +12,7 @@ Description:
 #include <math.h>
 #include <stdlib.h> // standard definitions
 #include <vector>
+#include <ctime>
 
 
 
@@ -82,6 +83,9 @@ void init(void)
     glEnable(GL_COLOR_MATERIAL); 
     
     glEnable(GL_DEPTH_TEST);
+
+    /* initialize random seed: */
+    srand(time(NULL));
 }
 
 //----------------------------------------------------------------------
@@ -106,7 +110,7 @@ void changeSize(int w, int h)
 // print state of the chessboard (debug function)
 void printFreeSpot()
 {
-    std::cout << "------- State of Chessboard -------" << -2 % 8 << std::endl;
+    std::cout << "------- State of Chessboard (black->up, white->down) -------" << std::endl;
     for (int i = 0; i < 8; ++i)
     {
         for (int j = 0; j < 8; ++j)
@@ -126,10 +130,16 @@ void updateSpotInfo(int y, int x, int openSpot)
 // Move pawn forward
 void movePawnFunc()
 {
-    for (int i = 0; i < 8; ++i)
+    int count = 0;
+    while (count < 16)
     {
+        int getRandNum = rand() % 16;
+        int pawnColor = getRandNum / 8;
+        int i = getRandNum % 8;
+
+        // std::cout << pawnColor << " " << i << std::endl;
         // move white pawn forward
-        if (freeSpot[7 - (whitePawnY[i] + 1) % 8][i])
+        if (freeSpot[7 - (whitePawnY[i] + 1) % 8][i] && pawnColor == 0)
         {
             freeSpot[7 - whitePawnY[i]][i] = 1;
             whitePawnY[i] = (whitePawnY[i] + 1) % 8;
@@ -137,13 +147,14 @@ void movePawnFunc()
             break;
         }
         // move black pawn forward
-        else if (freeSpot[7 - (blackPawnY[i] - 1) % 8][i])
+        else if (freeSpot[7 - (blackPawnY[i] - 1) % 8][i] && pawnColor == 1)
         {
             freeSpot[7 - blackPawnY[i]][i] = 1;
             blackPawnY[i] = (blackPawnY[i] - 1) % 8;
             freeSpot[7 - blackPawnY[i]][i] = 0;
             break;
         }
+        count++;
     }
 
     movePawn = false;
