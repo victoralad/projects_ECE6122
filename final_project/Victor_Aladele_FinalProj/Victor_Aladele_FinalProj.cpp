@@ -33,11 +33,13 @@ Description:
 
 float angle = 0.0; // initial orientation of the chessboard
 
-float length = 110.0, width = 48.0;
+float length = 110.0, width = 49.0;
+float bounds = 2.0;
 
 // Camera position
-float eyeX = length / 2, eyeY = -width / 1.5, eyeZ = 75; // initially 5 units south of origin
-float deltaMove = 0.0; // initially camera doesn't move
+float eyeX = length / 2, eyeY = -width / 3.0, eyeZ = 75; // initially 5 units south of origin
+float deltaMoveY = 0.0; // initially camera doesn't move
+float deltaMoveZ = 0.0;
 
 // Camera direction
 float lx = length / 2, ly = width / 2, lz = 0.0; 
@@ -83,10 +85,10 @@ void init(void)
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHT1);
+    // glEnable(GL_LIGHT1);
     glEnable(GL_COLOR_MATERIAL); 
     
-    glEnable(GL_DEPTH_TEST);
+    // glEnable(GL_DEPTH_TEST);
 
     /* initialize random seed: */
     srand(time(NULL));
@@ -113,26 +115,43 @@ void changeSize(int w, int h)
 
 void displayFootballField()
 {
+
     glColor3f(0.1, 0.6, 0.1);
     glPushMatrix();
         glBegin(GL_QUADS);
+            glTranslatef(0, 0, 0.0);
             glVertex3f(0.0, 0.0, 0.0);
-            glVertex3f(0.0, width, 0.0);
-            glVertex3f(length, width, 0.0);
-            glVertex3f(length, 0.0, 0.0);
+            glVertex3f(0.0, width + 2 * bounds, 0.0);
+            glVertex3f(length + 2 * bounds, width + 2 * bounds, 0.0);
+            glVertex3f(length + 2 * bounds, 0.0, 0.0);
         glEnd();
     glPopMatrix();
+
+    glColor3f(0.0, 0.9, 0.0);
+    glPushMatrix();
+        glBegin(GL_QUADS);
+            glVertex3f(bounds, bounds, 0.0);
+            glVertex3f(bounds, width + bounds, 0.0);
+            glVertex3f(length + bounds, width + bounds, 0.0);
+            glVertex3f(length + bounds, bounds, 0.0);
+        glEnd();
+    glPopMatrix();
+
 }
 
 void drawUAVs()
 {
     glColor3f(0.8, 0.1, 0.1);
-    glPushMatrix();
-        glTranslatef(5, 5, 0);
-        glutSolidCone(2.0, 10.0, 20, 20);
-        // glScalef(width, depth, height);
-        // glutSolidCone(0.5, 1.0, 20, 20);
-    glPopMatrix();
+    for (float i = 0; i <= width; i+= width / 2)
+    {
+        for (float j = 9.144; j <= length; j+= (length - 18.288) / 4)
+        {
+            glPushMatrix();
+                glTranslatef(j + bounds, i + bounds, 0);
+                glutSolidCone(0.5, 1.0, 20, 20);
+            glPopMatrix();
+        }
+    }
 }
 
 //----------------------------------------------------------------------
@@ -167,13 +186,32 @@ void renderScene()
     MPI_Allgather(sendBuffer, numElements, MPI_DOUBLE, rcvbuffer, numElements, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
+void update()
+{
+    if (deltaMoveY)
+    {
+        eyeY += deltaMoveY;
+        deltaMoveY = 0.0;
+    }
+    if (deltaMoveZ)
+    {
+        eyeZ += deltaMoveZ;
+        deltaMoveZ = 0.0;
+    }
+}
+
+// debug function to move field around
 void processNormalKeys(unsigned char key, int xx, int yy)
 {
     switch (key)
     {
-        case ESC: exit(0);
-        case 'q': exit(0);
-        case 'Q': exit(0);
+        case ESC : exit(0); break;
+        case 'q' : exit(0); break;
+        case 'Q' : exit(0); break;
+        case '1' : deltaMoveY = 0.25; break;
+        case '0' : deltaMoveY = -0.25; break;
+        case 'u' : deltaMoveZ = 0.25; break;
+        case 'd' : deltaMoveZ = -0.25; break;
     }
 }
 
@@ -212,6 +250,7 @@ void mainOpenGL(int argc, char**argv)
 
     glutReshapeFunc(changeSize);
     glutDisplayFunc(renderScene);
+    glutIdleFunc(update); // incremental update
     glutKeyboardFunc(processNormalKeys); // process standard key clicks
     glutTimerFunc(100, timerFunc, 0);
     glutMainLoop();
