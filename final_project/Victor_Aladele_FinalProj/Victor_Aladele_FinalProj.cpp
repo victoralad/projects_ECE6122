@@ -8,27 +8,63 @@ Description:
 */
 
 #include <iostream>
-#include <GL/glut.h> // Include the GLUT header file
 #include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+#include "iomanip"
+#include <cmath>
 #include <math.h>
-#include <stdlib.h> // standard definitions
+#include <cstdlib>
+#include <GL/glut.h>
+#include <chrono>
+#include <thread>
 
 #define ESC 27
+//----------------------------------------------------------------------
+// Global variables
+//
+// The coordinate system is set up so that the (x,y)-coordinate plane
+// is the ground, and the z-axis is directed upwards. The y-axis points
+// to the north and the x-axis points to the east.
+//
+// The values (x,y, z) are the current camera position. The values (lx, ly, lz)
+// point in the direction the camera is looking. 
+//----------------------------------------------------------------------
 
+float angle = 0.0; // initial orientation of the chessboard
+
+float length = 110.0, width = 48.0;
+
+// Camera position
+float eyeX = length / 2, eyeY = -width / 1.5, eyeZ = 75; // initially 5 units south of origin
+float deltaMove = 0.0; // initially camera doesn't move
+
+// Camera direction
+float lx = length / 2, ly = width / 2, lz = 0.0; 
+
+// initialize lighting values and material properties
 GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
 GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_diffuse[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat light1_specular[] = {0.3, 0.3, 0.3, 1.0};
-GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat mat_specular[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat mat_shininess[] = {50.0};
 GLfloat light1_position[] = {5.0, 5.0, 8.0};
-GLdouble width = 0.75, depth = 0.75, height = 1.0;
-bool light0Enable = true, light1Enable = true;
+
+// Send location and velocity vector in each direction
+const int numElements = 6; // x, y, z, vx, vy, vz
+
+const int rcvSize = 16 * 6; // (Main task + 15 UAVs) * numElements
+
+double* rcvbuffer = new double[rcvSize];
+
+double sendBuffer[numElements];
 
 void init(void)
 {
+    // turn on light and material functions
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glShadeModel(GL_SMOOTH);
 
@@ -51,29 +87,10 @@ void init(void)
     glEnable(GL_COLOR_MATERIAL); 
     
     glEnable(GL_DEPTH_TEST);
+
+    /* initialize random seed: */
+    srand(time(NULL));
 }
-
-//----------------------------------------------------------------------
-// Global variables
-//
-// The coordinate system is set up so that the (x,y)-coordinate plane
-// is the ground, and the z-axis is directed upwards. The y-axis points
-// to the north and the x-axis points to the east.
-//
-// The values (x,y, z) are the current camera position. The values (lx, ly, lz)
-// point in the direction the camera is looking. The variables angle and
-// deltaAngle control the camera's angle. The variable deltaMove
-// indicates the amount of incremental motion for the camera with each
-// redraw cycle. 
-//----------------------------------------------------------------------
-
-// Camera position
-float x = 55.0, y = -24.0, z = 30; // initially 5 units south of origin
-float deltaMove = 0.0; // initially camera doesn't move
-
-// Camera direction
-float lx = 55.0, ly = 24.0, lz = -50.0; 
-float angle = 0.0; // angle of rotation for the camera direction
 
 //----------------------------------------------------------------------
 // Reshape callback
@@ -89,48 +106,33 @@ void changeSize(int w, int h)
     float ratio = ((float)w) / ((float)h); // window aspect ratio
     glMatrixMode(GL_PROJECTION); // projection matrix is active
     glLoadIdentity(); // reset the projection
-    gluPerspective(120, ratio, 0.1, 30.0); // perspective transformation
+    gluPerspective(70.0, ratio, 0.1, 100.0); // perspective transformation
     glMatrixMode(GL_MODELVIEW); // return to modelview mode
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
 
-//----------------------------------------------------------------------
-// Draw UAVs
-// ----------------------------------------------------------------------
+void displayFootballField()
+{
+    glColor3f(0.1, 0.6, 0.1);
+    glPushMatrix();
+        glBegin(GL_QUADS);
+            glVertex3f(0.0, 0.0, 0.0);
+            glVertex3f(0.0, width, 0.0);
+            glVertex3f(length, width, 0.0);
+            glVertex3f(length, 0.0, 0.0);
+        glEnd();
+    glPopMatrix();
+}
+
 void drawUAVs()
 {
     glColor3f(0.8, 0.1, 0.1);
     glPushMatrix();
-        glTranslatef(-20, 0, 0);
-        glScalef(width, depth, height);
-        glutSolidCone(height / 0.2, height * 10, 20, 20);
+        glTranslatef(5, 5, 0);
+        glutSolidCone(2.0, 10.0, 20, 20);
+        // glScalef(width, depth, height);
+        // glutSolidCone(0.5, 1.0, 20, 20);
     glPopMatrix();
-    // for (int i = 0; i < 50; i += 48) 
-    // {
-    //     for (int j = 0; j < 111; i += 55)
-    //     {
-    //         glPushMatrix();
-    //             glTranslatef(j + 0.5, i + 0.5, 0);
-    //             glScalef(width, depth, height);
-    //             glutSolidCone(height / 2, height, 20, 20);
-    //         glPopMatrix();
-    //     }
-    // }
-}
-
-//----------------------------------------------------------------------
-// Update with each idle event
-//
-// This incrementally moves the camera and requests that the scene be
-// redrawn.
-//----------------------------------------------------------------------
-void update(void)
-{
-    if (deltaMove) { // update camera position
-        x += deltaMove;
-        z += deltaMove * 1.2;
-    }
-    glutPostRedisplay(); // redisplay everything
 }
 
 //----------------------------------------------------------------------
@@ -139,104 +141,123 @@ void update(void)
 // We first update the camera location based on its distance from the
 // origin and its direction.
 //----------------------------------------------------------------------
-void renderScene(void)
+void renderScene()
 {
 
-     // Clear color and depth buffers
+    // Clear color and depth buffers
     glClearColor(0.7, 0.8, 1.0, 1.0); // background color is blue
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Reset transformations
     glLoadIdentity();
 
-    // Set the camera centered at (x,y,z) and looking along directional
-    // vector (lx, ly, lz), with the z-axis pointing up
-    gluLookAt(
-        x, y, z,
-        lx, ly, lz,
-        0.0, 1.0, 0.0);
 
-    // draw football field
-    glColor3f(0.1, 0.6, 0.1);
-    glPushMatrix();
-        glBegin(GL_QUADS);
-            glVertex3f(-55.0, -24.375, 0.0);
-            glVertex3f(-55.0, 24.375, 0.0);
-            glVertex3f(55.0, 24.375, 0.0);
-            glVertex3f(55.0, -24.375, 0.0);
-        glEnd();
-    glPopMatrix();
+    gluLookAt(eyeX, eyeY, eyeZ, 
+              lx, ly, lz,
+              0.0, 0.0, 1.0);
+
+    glMatrixMode(GL_MODELVIEW);
+
+    displayFootballField();
 
     drawUAVs();
 
     glutSwapBuffers(); // Make it all visible
+
+    MPI_Allgather(sendBuffer, numElements, MPI_DOUBLE, rcvbuffer, numElements, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
-//----------------------------------------------------------------------
-// User-input callbacks
-//
-// processNormalKeys: ESC, q, and Q cause program to exit
-// pressSpecialKey: Up arrow = forward motion, down arrow = backwards
-// releaseSpecialKey: Set incremental motion to zero
-//----------------------------------------------------------------------
 void processNormalKeys(unsigned char key, int xx, int yy)
 {
-    // if (key == ESC || key == 'q' || key == 'Q')
-    // {
-    //     exit(0);
-    // }
     switch (key)
     {
         case ESC: exit(0);
         case 'q': exit(0);
         case 'Q': exit(0);
-        // case 'r': 
-    }
-}
-
-void pressSpecialKey(int key, int xx, int yy)
-{
-    switch (key) 
-    {
-    case GLUT_KEY_UP: deltaMove = 0.1; break;
-    case GLUT_KEY_DOWN: deltaMove = -0.1; break;
-    }
-}
-
-void releaseSpecialKey(int key, int x, int y)
-{
-    switch (key) 
-    {
-    case GLUT_KEY_UP: deltaMove = 0.0; break;
-    case GLUT_KEY_DOWN: deltaMove = 0.0; break;
     }
 }
 
 //----------------------------------------------------------------------
-// Main program  - standard GLUT initializations and callbacks
+// mainOpenGL  - standard GLUT initializations and callbacks
 //----------------------------------------------------------------------
-int main(int argc, char **argv)
+void timer(int id)
 {
-    // general initializations
+    glutPostRedisplay();
+    glutTimerFunc(100, timer, 0);
+}
+
+//----------------------------------------------------------------------
+// timerFunction  - called whenever the timer fires
+//----------------------------------------------------------------------
+void timerFunc(int id)
+{
+    glutPostRedisplay();
+    glutTimerFunc(100, timerFunc, 0);
+}
+
+//----------------------------------------------------------------------
+// mainOpenGL  - standard GLUT initializations and callbacks
+//----------------------------------------------------------------------
+void mainOpenGL(int argc, char**argv)
+{
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);
+    glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowPosition(100, 100);
     glutInitWindowSize(400, 400);
     glutCreateWindow("Super Bowl half-time Show");
     init();
-    // register callbacks
-    glutReshapeFunc(changeSize); // window reshape callback
-    glutDisplayFunc(renderScene); // (re)display callback
-    glutIdleFunc(update); // incremental update
-    glutIgnoreKeyRepeat(1); // ignore key repeat when holding key down
+
+    // Setup lights as needed
+    // ...
+
+    glutReshapeFunc(changeSize);
+    glutDisplayFunc(renderScene);
     glutKeyboardFunc(processNormalKeys); // process standard key clicks
-    glutSpecialFunc(pressSpecialKey); // process special key pressed
-                        // Warning: Nonstandard function! Delete if desired.
-    glutSpecialUpFunc(releaseSpecialKey); // process special key release
-
-
-    // enter GLUT event processing cycle
+    glutTimerFunc(100, timerFunc, 0);
     glutMainLoop();
+}
 
-    return 0; // this is just to keep the compiler happy
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+// Main entry point determines rank of the process and follows the 
+// correct program path
+//////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
+int main(int argc, char**argv)
+
+{
+    int numTasks, rank;
+
+    int rc = MPI_Init(&argc, &argv);
+
+    if (rc != MPI_SUCCESS) 
+    {
+        printf("Error starting MPI program. Terminating.\n");
+        MPI_Abort(MPI_COMM_WORLD, rc);
+    }
+
+    MPI_Comm_size(MPI_COMM_WORLD, &numTasks);
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int gsize = 0;
+
+    MPI_Comm_size(MPI_COMM_WORLD, &gsize);
+
+
+    if (rank == 0) 
+    {
+        mainOpenGL(argc, argv);
+    }
+    else
+    {
+        // Sleep for 5 seconds
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        for (int ii = 0; ii < 600 ; ii++)
+        {
+            // CalcualteUAVsLocation(rank); 
+            MPI_Allgather(sendBuffer, numElements, MPI_DOUBLE, rcvbuffer, numElements, MPI_DOUBLE, MPI_COMM_WORLD);
+        }
+    }
+    return 0;
 }

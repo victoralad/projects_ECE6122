@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Nov 20, 2019
+Last Date Modified: Nov 21, 2019
 Description:
     3D chess set model using OpenGL
 */
@@ -13,8 +13,6 @@ Description:
 #include <stdlib.h> // standard definitions
 #include <vector>
 #include <ctime>
-
-
 
 #define ESC 27
 
@@ -38,13 +36,14 @@ float lx = 4.0, ly = 4.0, lz = 0.0;
 
 float angle = 0.0; // initial orientation of the chessboard
 
+// initialize lighting values and material properties
 GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
 GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_diffuse[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat light1_specular[] = {0.3, 0.3, 0.3, 1.0};
-GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
+GLfloat mat_specular[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat mat_shininess[] = {50.0};
 GLfloat light1_position[] = {5.0, 5.0, 8.0};
 GLdouble width = 0.75, depth = 0.75, height = 1.0;
@@ -63,6 +62,7 @@ bool moveKnight = false;
 
 void init(void)
 {
+    // turn on light and material functions
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glShadeModel(GL_SMOOTH);
 
@@ -95,8 +95,8 @@ void init(void)
 //
 // Window size has been set/changed to w by h pixels. Set the camera
 // perspective to 45 degree vertical field of view, a window aspect
-// ratio of w/h, a near clipping plane at depth 1, and a far clipping
-// plane at depth 100. The viewport is the entire window.
+// ratio of w/h, a near clipping plane at depth 0.1, and a far clipping
+// plane at depth 30. The viewport is the entire window.
 //
 //----------------------------------------------------------------------
 void changeSize(int w, int h)
@@ -136,13 +136,11 @@ void moveKnightFunc()
     bool knightMoved = false;
     while (count < 4)
     {
-        int i = rand() % 4;
-        // std::cout << i << " " << 7 - (knightsY[i] + 2) << " " << knightsX[i] - 1 << std::endl;
+        int i = rand() % 4; // select knight
         for (int j = 0; j < 8; ++j)
         {
             if (7 - (knightsY[i] + pYMoves[j]) >= 0 && knightsX[i] + pXMoves[j] >= 0 && freeSpot[7 - (knightsY[i] + pYMoves[j])][knightsX[i] + pXMoves[j]])
             {
-                std::cout << i << " " << 7 - (knightsY[i] + pYMoves[j]) << " " << knightsX[i] + pXMoves[j] << std::endl;
                 freeSpot[7 - knightsY[i]][knightsX[i]] = 1;
                 knightsY[i] = knightsY[i] + pYMoves[j];
                 knightsX[i] = knightsX[i] + pXMoves[j];
@@ -156,32 +154,6 @@ void moveKnightFunc()
         {
             break;
         }
-        
-        // int getRandNum = rand() % 4;
-        // int knightColor = getRandNum / 2;
-        // int i = getRandNum;// % 2;
-        // std::cout << i << std::endl;
-        // // for (int j = 0; j < 8; ++j)
-        // // {
-        //     // move white knight
-        //     if (freeSpot[7 - (knightsY[i] + 2) % 8][7 - (knightsX[i] - 1) % 8] && knightColor == 0)
-        //     {
-        //         freeSpot[7 - knightsY[i]][knightsX[i]] = 1;
-        //         knightsY[i] = (knightsY[i] + 2) % 8;
-        //         knightsX[i] = (knightsX[i] - 1) % 8;
-        //         freeSpot[7 - knightsY[i]][knightsX[i]] = 0;
-        //         break;
-        //     }
-        //     // move black knight
-        //     else if (freeSpot[7 - (knightsY[i] - 2) % 8][7 - (knightsX[i] - 1) % 8] && knightColor == 1)
-        //     {
-        //         freeSpot[7 - knightsY[i]][knightsX[i]] = 1;
-        //         knightsY[i] = (knightsY[i] - 2) % 8;
-        //         knightsX[i] = (knightsX[i] - 1) % 8;
-        //         freeSpot[7 - knightsY[i]][knightsX[i]] = 0;
-        //         break;
-        //     }
-        // }
         count++;
     }
 }
