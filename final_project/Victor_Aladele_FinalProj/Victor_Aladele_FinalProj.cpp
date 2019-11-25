@@ -99,11 +99,12 @@ void init(void)
     srand(time(NULL));
 
     // texturing
-    inBitmap.read("WinterIsland.bmp");
+    // inBitmap.read("WinterIsland.bmp");
+    inBitmap.read("AmFBfield.bmp");
 
     // makeCheckImage();
 
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
     // Create Textures
 
@@ -120,7 +121,7 @@ void init(void)
     glTexImage2D(GL_TEXTURE_2D, 0, 3, inBitmap.bmp_info_header.width, inBitmap.bmp_info_header.height, 0,
         GL_BGR_EXT, GL_UNSIGNED_BYTE, &inBitmap.data[0]);
 
-    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    // glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,  GL_DECAL);
 
     glEnable(GL_TEXTURE_2D);
 }
@@ -209,21 +210,24 @@ void renderScene()
 
     glMatrixMode(GL_MODELVIEW);
 
-    glBindTexture(GL_TEXTURE_2D, texture[0]);
-
     glPushMatrix();
-    glTranslatef(55, 24.5, 0);
-    glScalef(55, 24.5, 0);
-    glBegin(GL_QUADS);
-        glTexCoord2f(1, 1);
-        glVertex3f(1.0f, 1.0f, 0.0f);
-        glTexCoord2f(0, 1);
-        glVertex3f(-1.0f, 1.0f, 0.0f);
-        glTexCoord2f(0, 0);
-        glVertex3f(-1.0f, -1.0f, 0.0f);
-        glTexCoord2f(1, 0);
-        glVertex3f(1.0f, -1.0f, 0.0f);
-    glEnd();
+
+        glBindTexture(GL_TEXTURE_2D, texture[0]);
+
+        glColor3f(1, 1, 1);
+        glTranslatef(55 + bounds, 24.5 + bounds, 0);
+        glScalef(55, 24.5, 0);
+        glBegin(GL_QUADS);
+            glTexCoord2f(1, 1);
+            glVertex3f(1.0f, 1.0f, 0.0f);
+            glTexCoord2f(0, 1);
+            glVertex3f(-1.0f, 1.0f, 0.0f);
+            glTexCoord2f(0, 0);
+            glVertex3f(-1.0f, -1.0f, 0.0f);
+            glTexCoord2f(1, 0);
+            glVertex3f(1.0f, -1.0f, 0.0f);
+        glEnd();
+
     glPopMatrix();
 
     displayFootballField();
