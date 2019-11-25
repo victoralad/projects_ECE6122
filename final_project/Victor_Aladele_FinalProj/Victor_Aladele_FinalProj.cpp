@@ -16,6 +16,7 @@ Description:
 #include <math.h>
 #include <cstdlib>
 #include <GL/glut.h>
+#include "ECE_Bitmap.h"
 #include <chrono>
 #include <thread>
 
@@ -55,6 +56,10 @@ GLfloat mat_specular[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat mat_shininess[] = {50.0};
 GLfloat light1_position[] = {5.0, 5.0, 8.0};
 
+// texturing variables
+GLuint texture[1];
+BMP inBitmap;
+
 // Send location and velocity vector in each direction
 const int numElements = 6; // x, y, z, vx, vy, vz
 
@@ -85,13 +90,39 @@ void init(void)
 
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
-    // glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHT1);
     glEnable(GL_COLOR_MATERIAL); 
     
-    // glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 
     /* initialize random seed: */
     srand(time(NULL));
+
+    // texturing
+    inBitmap.read("WinterIsland.bmp");
+
+    // makeCheckImage();
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+    // Create Textures
+
+    glGenTextures(1, texture);
+    
+    // Setup first texture
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //scale linearly when image bigger than texture
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //scale linearly when image smalled than texture
+
+
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, inBitmap.bmp_info_header.width, inBitmap.bmp_info_header.height, 0,
+        GL_BGR_EXT, GL_UNSIGNED_BYTE, &inBitmap.data[0]);
+
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+
+    glEnable(GL_TEXTURE_2D);
 }
 
 //----------------------------------------------------------------------
@@ -117,6 +148,7 @@ void displayFootballField()
 {
 
     glColor3f(0.1, 0.6, 0.1);
+    glNormal3f(0.0f, 0.0f, 1.0f);
     glPushMatrix();
         glBegin(GL_QUADS);
             glTranslatef(0, 0, 0.0);
@@ -127,15 +159,15 @@ void displayFootballField()
         glEnd();
     glPopMatrix();
 
-    glColor3f(0.0, 0.9, 0.0);
-    glPushMatrix();
-        glBegin(GL_QUADS);
-            glVertex3f(bounds, bounds, 0.0);
-            glVertex3f(bounds, width + bounds, 0.0);
-            glVertex3f(length + bounds, width + bounds, 0.0);
-            glVertex3f(length + bounds, bounds, 0.0);
-        glEnd();
-    glPopMatrix();
+    // glColor3f(0.0, 0.9, 0.0);
+    // glPushMatrix();
+    //     glBegin(GL_QUADS);
+    //         glVertex3f(bounds, bounds, 0.0);
+    //         glVertex3f(bounds, width + bounds, 0.0);
+    //         glVertex3f(length + bounds, width + bounds, 0.0);
+    //         glVertex3f(length + bounds, bounds, 0.0);
+    //     glEnd();
+    // glPopMatrix();
 
 }
 
@@ -176,6 +208,23 @@ void renderScene()
               0.0, 0.0, 1.0);
 
     glMatrixMode(GL_MODELVIEW);
+
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
+
+    glPushMatrix();
+    glTranslatef(55, 24.5, 0);
+    glScalef(55, 24.5, 0);
+    glBegin(GL_QUADS);
+        glTexCoord2f(1, 1);
+        glVertex3f(1.0f, 1.0f, 0.0f);
+        glTexCoord2f(0, 1);
+        glVertex3f(-1.0f, 1.0f, 0.0f);
+        glTexCoord2f(0, 0);
+        glVertex3f(-1.0f, -1.0f, 0.0f);
+        glTexCoord2f(1, 0);
+        glVertex3f(1.0f, -1.0f, 0.0f);
+    glEnd();
+    glPopMatrix();
 
     displayFootballField();
 
