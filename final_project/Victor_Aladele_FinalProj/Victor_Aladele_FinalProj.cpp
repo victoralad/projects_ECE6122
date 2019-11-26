@@ -21,6 +21,8 @@ Description:
 #include <thread>
 
 #define ESC 27
+#define gravity -10 
+#define mass 1 // mass of a UAV in kg
 //----------------------------------------------------------------------
 // Global variables
 //
@@ -33,7 +35,6 @@ Description:
 //----------------------------------------------------------------------
 
 float angle = 0.0; // initial orientation of the chessboard
-
 float length = 110.0, width = 49.0;
 float bounds = 2.0;
 
@@ -46,35 +47,40 @@ float deltaMoveZ = 0.0;
 float lx = length / 2, ly = width / 2, lz = 0.0; 
 
 // initialize lighting values and material properties
-GLfloat light0_ambient[] = {0.2, 0.2, 0.2, 1.0};
+GLfloat light0_ambient[] = {0.3, 0.3, 0.3, 1.0};
 GLfloat light0_diffuse[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light0_specular[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_ambient[] = {0.0, 0.0, 0.0, 0.0};
 GLfloat light1_diffuse[] = {0.5, 0.5, 0.5, 1.0};
 GLfloat light1_specular[] = {0.3, 0.3, 0.3, 1.0};
-GLfloat mat_specular[] = {0.5, 0.5, 0.5, 1.0};
+GLfloat mat_ambient[] = {0.8, 0.8, 0.8, 1.0};
+GLfloat mat_specular[] = {0.8, 0.8, 0.8, 1.0};
 GLfloat mat_shininess[] = {50.0};
-GLfloat light1_position[] = {5.0, 5.0, 8.0};
+GLfloat light1_position[] = {55.0, 25.0, 70.0};
 
 // texturing variables
 GLuint texture[1];
 BMP inBitmap;
 
 // Send location and velocity vector in each direction
-const int numElements = 6; // x, y, z, vx, vy, vz
+const int sendSize = 6; // x, y, z, vx, vy, vz
+const int recvSize = 16 * 6; // (Main task + 15 UAVs) * sendSize
+double recvbuffer[recvSize] = {0};
+double sendBuffer[sendSize] = {0};
+double accel[3] = {0};
+double force[3] = {0};
+double gravForce[3] = {0, 0, gravity};
+double kP[3] = {10, 10, 20}; // position control gain
+double kV[3] = {2, 2, 5}; // velocity control gain
+double goal[3] = {0, 0, 10}; // target position
 
-const int rcvSize = 16 * 6; // (Main task + 15 UAVs) * numElements
-
-double* rcvbuffer = new double[rcvSize];
-
-double sendBuffer[numElements];
-
-void init(void)
+void init()
 {
     // turn on light and material functions
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glShadeModel(GL_SMOOTH);
 
+    glMaterialfv(GL_FRONT, GL_AMBIENT, mat_ambient);
     glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
     glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
 
@@ -99,10 +105,7 @@ void init(void)
     srand(time(NULL));
 
     // texturing
-    // inBitmap.read("WinterIsland.bmp");
     inBitmap.read("AmFBfield.bmp");
-
-    // makeCheckImage();
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -110,13 +113,12 @@ void init(void)
 
     glGenTextures(1, texture);
     
-    // Setup first texture
+    // Setup texture
     glBindTexture(GL_TEXTURE_2D, texture[0]);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); //scale linearly when image bigger than texture
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); //scale linearly when image smalled than texture
-
 
     glTexImage2D(GL_TEXTURE_2D, 0, 3, inBitmap.bmp_info_header.width, inBitmap.bmp_info_header.height, 0,
         GL_BGR_EXT, GL_UNSIGNED_BYTE, &inBitmap.data[0]);
@@ -140,48 +142,42 @@ void changeSize(int w, int h)
     float ratio = ((float)w) / ((float)h); // window aspect ratio
     glMatrixMode(GL_PROJECTION); // projection matrix is active
     glLoadIdentity(); // reset the projection
-    gluPerspective(70.0, ratio, 0.1, 100.0); // perspective transformation
+    gluPerspective(80.0, ratio, 0.1, 100.0); // perspective transformation
     glMatrixMode(GL_MODELVIEW); // return to modelview mode
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
 
 void displayFootballField()
 {
-
-    glColor3f(0.1, 0.6, 0.1);
-    glNormal3f(0.0f, 0.0f, 1.0f);
+    glColor3f(0.9, 0.9, 0.9);
+    glBindTexture(GL_TEXTURE_2D, texture[0]);
     glPushMatrix();
+        glTranslatef(55 + bounds, 24.5 + bounds, 0);
+        glScalef(55 + 1.5*bounds, 24.5 + 1.5*bounds, 0);
         glBegin(GL_QUADS);
-            glTranslatef(0, 0, 0.0);
-            glVertex3f(0.0, 0.0, 0.0);
-            glVertex3f(0.0, width + 2 * bounds, 0.0);
-            glVertex3f(length + 2 * bounds, width + 2 * bounds, 0.0);
-            glVertex3f(length + 2 * bounds, 0.0, 0.0);
+            glTexCoord2f(1, 1);
+            glVertex3f(1.0f, 1.0f, 0.0f);
+            glTexCoord2f(0, 1);
+            glVertex3f(-1.0f, 1.0f, 0.0f);
+            glTexCoord2f(0, 0);
+            glVertex3f(-1.0f, -1.0f, 0.0f);
+            glTexCoord2f(1, 0);
+            glVertex3f(1.0f, -1.0f, 0.0f);
         glEnd();
     glPopMatrix();
-
-    // glColor3f(0.0, 0.9, 0.0);
-    // glPushMatrix();
-    //     glBegin(GL_QUADS);
-    //         glVertex3f(bounds, bounds, 0.0);
-    //         glVertex3f(bounds, width + bounds, 0.0);
-    //         glVertex3f(length + bounds, width + bounds, 0.0);
-    //         glVertex3f(length + bounds, bounds, 0.0);
-    //     glEnd();
-    // glPopMatrix();
-
+    glBindTexture(GL_TEXTURE_2D,0);
 }
 
 void drawUAVs()
 {
-    glColor3f(0.8, 0.1, 0.1);
+    glColor3f(1.0, 0.0, 0.0);
     for (float i = 0; i <= width; i+= width / 2)
     {
         for (float j = 9.144; j <= length; j+= (length - 18.288) / 4)
         {
             glPushMatrix();
                 glTranslatef(j + bounds, i + bounds, 0);
-                glutSolidCone(0.5, 1.0, 20, 20);
+                glutSolidCone(1, 2.0, 20, 20);
             glPopMatrix();
         }
     }
@@ -203,32 +199,11 @@ void renderScene()
     // Reset transformations
     glLoadIdentity();
 
-
     gluLookAt(eyeX, eyeY, eyeZ, 
               lx, ly, lz,
               0.0, 0.0, 1.0);
 
     glMatrixMode(GL_MODELVIEW);
-
-    glPushMatrix();
-
-        glBindTexture(GL_TEXTURE_2D, texture[0]);
-
-        glColor3f(1, 1, 1);
-        glTranslatef(55 + bounds, 24.5 + bounds, 0);
-        glScalef(55, 24.5, 0);
-        glBegin(GL_QUADS);
-            glTexCoord2f(1, 1);
-            glVertex3f(1.0f, 1.0f, 0.0f);
-            glTexCoord2f(0, 1);
-            glVertex3f(-1.0f, 1.0f, 0.0f);
-            glTexCoord2f(0, 0);
-            glVertex3f(-1.0f, -1.0f, 0.0f);
-            glTexCoord2f(1, 0);
-            glVertex3f(1.0f, -1.0f, 0.0f);
-        glEnd();
-
-    glPopMatrix();
 
     displayFootballField();
 
@@ -236,7 +211,7 @@ void renderScene()
 
     glutSwapBuffers(); // Make it all visible
 
-    MPI_Allgather(sendBuffer, numElements, MPI_DOUBLE, rcvbuffer, numElements, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvbuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
 void update()
@@ -265,6 +240,26 @@ void processNormalKeys(unsigned char key, int xx, int yy)
         case '0' : deltaMoveY = -0.25; break;
         case 'u' : deltaMoveZ = 0.25; break;
         case 'd' : deltaMoveZ = -0.25; break;
+    }
+}
+
+// update the state of each UAV
+void calculateUAVsLocation(int rank)
+{
+    // update velocity
+    for(int i = 0; i < 3; ++i) 
+    {
+        // calculate force
+        force[i] = kP[i] * (goal[i] - sendBuffer[i]) - kV[i] * sendBuffer[i + 3];
+
+        // calculate acceleration
+        accel[i] = (force[i] + gravForce[i]) / mass;
+
+        // update velocity
+        sendBuffer[i + 3] = recvbuffer[16 * rank + i + 3] + accel[i];
+
+        // update position
+        sendBuffer[i] = recvbuffer[16 * rank + i] + sendBuffer[i + 3] + 0.5 * accel[i];
     }
 }
 
@@ -297,9 +292,6 @@ void mainOpenGL(int argc, char**argv)
     glutInitWindowSize(400, 400);
     glutCreateWindow("Super Bowl half-time Show");
     init();
-
-    // Setup lights as needed
-    // ...
 
     glutReshapeFunc(changeSize);
     glutDisplayFunc(renderScene);
@@ -345,10 +337,10 @@ int main(int argc, char**argv)
     {
         // Sleep for 5 seconds
         std::this_thread::sleep_for(std::chrono::seconds(5));
-        for (int ii = 0; ii < 600 ; ii++)
+        for (int i = 0; i < 600 ; ++i)
         {
-            // CalcualteUAVsLocation(rank); 
-            MPI_Allgather(sendBuffer, numElements, MPI_DOUBLE, rcvbuffer, numElements, MPI_DOUBLE, MPI_COMM_WORLD);
+            calculateUAVsLocation(rank); 
+            MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvbuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
         }
     }
     return 0;
