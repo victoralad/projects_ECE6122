@@ -16,7 +16,7 @@ Description:
 #include <math.h>
 #include <cstdlib>
 #include <GL/glut.h>
-#include "ECE_Bitmap.h"
+#include "Victor_Aladele_FinalProj.h"
 #include <chrono>
 #include <thread>
 
@@ -105,7 +105,7 @@ void init()
     srand(time(NULL));
 
     // texturing
-    inBitmap.read("AmFBfield.bmp");
+    inBitmap.read("ff.bmp");
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
