@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Nov 15, 2019
+Last Date Modified: Nov 27, 2019
 Description:
     3D simulation of a half time UAV show using MPI and OpenGL.
     The UAVs are red in color and spherical in shape. 
@@ -70,9 +70,9 @@ double sendBuffer[sendSize] = {0};
 double accel[3] = {0};
 double force[3] = {0};
 double gravForce[3] = {0, 0, gravity};
-double kP[3] = {0.5, 0.5, 0.3}; // position control gain
-double kV[3] = {0.5, 0.5, 1.2}; // velocity control gain
-double goal[3] = {0, width / 2, 50}; // target position
+double kP[3] = {0.5, 0.5, 0.1}; // position control gain
+double kV[3] = {0.5, 0.5, 0.5}; // velocity control gain
+double goal[3] = {length / 2, width / 2, 50}; // target position
 
 void init()
 {
@@ -172,14 +172,14 @@ void drawUAVs()
 {
     glColor3f(1.0, 0.0, 0.0);
     int rankID = 1;
-    std::cout << " -------speed of UAVs --------" << std::endl;
+    std::cout << " -------height of UAVs --------" << std::endl;
     for (float i = 0; i <= width; i+= width / 2)
     {
         for (float j = 9.144; j <= length; j+= (length - 18.288) / 4)
         {
-            std::cout << recvBuffer[sendSize * rankID + 5] << " ";
+            std::cout << recvBuffer[sendSize * rankID + 2] << " ";
             glPushMatrix();
-                glTranslatef(j + bounds + recvBuffer[sendSize * rankID], i + bounds + recvBuffer[sendSize * rankID + 1], recvBuffer[sendSize * rankID + 2]);
+                glTranslatef(bounds + recvBuffer[sendSize * rankID], bounds + recvBuffer[sendSize * rankID + 1], recvBuffer[sendSize * rankID + 2]);
                 glutSolidCone(1, 2.0, 20, 20);
             glPopMatrix();
             
@@ -288,6 +288,22 @@ void calculateUAVsLocation(int rank)
     }
 }
 
+void initUAVLocation(int rank)
+{
+    sendBuffer[0] = 9.144 + ((rank - 1) % 5 * (length - 18.288)) / 4;
+    sendBuffer[1] = (rank - 1) / 5 * width / 2;
+    sendBuffer[2] = 0.0;
+    // for (float i = 0; i <= width; i+= width / 2)
+    // {
+    //     for (float j = 9.144; j <= length; j+= (length - 18.288) / 4)
+    //     {
+    //         std::cout << recvBuffer[sendSize * rankID + 2] << " ";
+    //         rankID++;
+    //     }
+    //     std::cout << std::endl;
+    // }
+}
+
 //----------------------------------------------------------------------
 // timerFunction  - called whenever the timer fires
 //----------------------------------------------------------------------
@@ -344,13 +360,18 @@ int main(int argc, char**argv)
 
     MPI_Comm_size(MPI_COMM_WORLD, &gsize);
 
+    // Initialize all UAV locations
+    initUAVLocation(rank);
 
+    MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
+    
     if (rank == 0) 
     {
         mainOpenGL(argc, argv);
     }
     else
     {
+
         // Sleep for 5 seconds
         std::this_thread::sleep_for(std::chrono::seconds(5));
         for (int i = 0; i < 600 ; ++i)
