@@ -21,7 +21,7 @@ Description:
 #include <thread>
 
 #define ESC 27
-#define gravity -10 
+#define gravity 10 
 #define mass 1 // mass of a UAV in kg
 //----------------------------------------------------------------------
 // Global variables
@@ -70,8 +70,8 @@ double sendBuffer[sendSize] = {0};
 double accel[3] = {0};
 double force[3] = {0};
 double gravForce[3] = {0, 0, gravity};
-double kP[3] = {0.5, 0.5, 0.8}; // position control gain
-double kV[3] = {0.5, 0.5, 0.5}; // velocity control gain
+double kP[3] = {0.5, 0.5, 0.5}; // position control gain
+double kV[3] = {0.5, 0.5, 1.2}; // velocity control gain
 double goal[3] = {0, 0, 10}; // target position
 
 void init()
@@ -172,12 +172,12 @@ void drawUAVs()
 {
     glColor3f(1.0, 0.0, 0.0);
     int rankID = 1;
-    std::cout << " -------drawUAVs --------" << std::endl;
+    std::cout << " -------height of UAVs --------" << std::endl;
     for (float i = 0; i <= width; i+= width / 2)
     {
         for (float j = 9.144; j <= length; j+= (length - 18.288) / 4)
         {
-            std::cout << recvBuffer[sendSize * rankID + 5] << " ";
+            std::cout << recvBuffer[sendSize * rankID + 2] << " ";
             glPushMatrix();
                 glTranslatef(j + bounds, i + bounds, recvBuffer[sendSize * rankID + 2]);
                 glutSolidCone(1, 2.0, 20, 20);
@@ -266,11 +266,11 @@ void calculateUAVsLocation(int rank)
     for(int i = 0; i < 3; ++i) 
     {
         // calculate force
-        force[i] = kP[i] * (goal[i] - sendBuffer[i]) - kV[i] * sendBuffer[i + 3];
+        force[i] = kP[i] * (goal[i] - sendBuffer[i]) - kV[i] * sendBuffer[i + 3] + gravForce[i];
         force[i] = std::min(20.0, std::max(-20.0, force[i]));
 
         // calculate acceleration
-        accel[i] = (force[i] + gravForce[i]) / mass;
+        accel[i] = (force[i] - gravForce[i]) / mass;
 
         // update velocity
         sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i];
@@ -359,5 +359,4 @@ int main(int argc, char**argv)
         }
     }
     MPI_Finalize();
-    // return 0;
 }
