@@ -39,7 +39,7 @@ float length = 110.0, width = 49.0;
 float bounds = 2.0;
 
 // Camera position
-float eyeX = length / 2, eyeY = -width / 3.0, eyeZ = 75; // initially 5 units south of origin
+float eyeX = length / 2, eyeY = -width / 0.5, eyeZ = 100; // initially 5 units south of origin
 float deltaMoveY = 0.0; // initially camera doesn't move
 float deltaMoveZ = 0.0;
 
@@ -70,9 +70,9 @@ double sendBuffer[sendSize] = {0};
 double accel[3] = {0};
 double force[3] = {0};
 double gravForce[3] = {0, 0, gravity};
-double kP[3] = {0.5, 0.5, 0.5}; // position control gain
+double kP[3] = {0.5, 0.5, 0.3}; // position control gain
 double kV[3] = {0.5, 0.5, 1.2}; // velocity control gain
-double goal[3] = {0, 0, 10}; // target position
+double goal[3] = {0, width / 2, 50}; // target position
 
 void init()
 {
@@ -142,7 +142,7 @@ void changeSize(int w, int h)
     float ratio = ((float)w) / ((float)h); // window aspect ratio
     glMatrixMode(GL_PROJECTION); // projection matrix is active
     glLoadIdentity(); // reset the projection
-    gluPerspective(80.0, ratio, 0.1, 100.0); // perspective transformation
+    gluPerspective(60.0, ratio, 0.1, 200.0); // perspective transformation
     glMatrixMode(GL_MODELVIEW); // return to modelview mode
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
@@ -172,14 +172,14 @@ void drawUAVs()
 {
     glColor3f(1.0, 0.0, 0.0);
     int rankID = 1;
-    std::cout << " -------height of UAVs --------" << std::endl;
+    std::cout << " -------speed of UAVs --------" << std::endl;
     for (float i = 0; i <= width; i+= width / 2)
     {
         for (float j = 9.144; j <= length; j+= (length - 18.288) / 4)
         {
-            std::cout << recvBuffer[sendSize * rankID + 2] << " ";
+            std::cout << recvBuffer[sendSize * rankID + 5] << " ";
             glPushMatrix();
-                glTranslatef(j + bounds, i + bounds, recvBuffer[sendSize * rankID + 2]);
+                glTranslatef(j + bounds + recvBuffer[sendSize * rankID], i + bounds + recvBuffer[sendSize * rankID + 1], recvBuffer[sendSize * rankID + 2]);
                 glutSolidCone(1, 2.0, 20, 20);
             glPopMatrix();
             
@@ -274,6 +274,7 @@ void calculateUAVsLocation(int rank)
 
         // update velocity
         sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i];
+        sendBuffer[i + 3] = std::min(2.0, std::max(-2.0, sendBuffer[i + 3]));
 
         // update position
         sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] + 0.5 * accel[i];
@@ -304,7 +305,7 @@ void mainOpenGL(int argc, char**argv)
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
     glutInitWindowPosition(100, 100);
-    glutInitWindowSize(400, 400);
+    glutInitWindowSize(800, 800);
     glutCreateWindow("Super Bowl half-time Show");
     init();
 
