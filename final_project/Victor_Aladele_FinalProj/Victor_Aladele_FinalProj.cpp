@@ -73,6 +73,7 @@ double gravForce[3] = {0, 0, gravity};
 double kP[3] = {0.5, 0.5, 0.1}; // position control gain
 double kV[3] = {0.5, 0.5, 0.5}; // velocity control gain
 double goal[3] = {length / 2, width / 2, 50}; // target position
+double distToSphere = 0;
 
 void init()
 {
@@ -213,15 +214,6 @@ void renderScene()
 
     MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
 
-    // std::cout << " --######## mpi #############---" << std::endl;
-    // for (int rankID = 1; rankID < 16; ++rankID) 
-    // {
-    //     for (int i = 0; i < 6; ++i)
-    //     {
-    //         std::cout << recvBuffer[6 * rankID + i] << " ";
-    //     }
-    //     std::cout << std::endl;
-    // }
 }
 
 void update()
@@ -258,13 +250,6 @@ void calculateUAVsLocation(int rank)
 {
     int totForceSq = 0, totVelSq = 0; 
 
-    // store previous velocity values
-    double prevVel[3] = {0};
-    for (int i = 0; i < 3; ++i)
-    {
-        prevVel[i] = sendBuffer[i + 3];
-    }
-
     // update force
     for(int i = 0; i < 3; ++i) 
     {
@@ -277,12 +262,18 @@ void calculateUAVsLocation(int rank)
     for(int i = 0; i < 3; ++i) 
     {
         // calculate force
-        force[i] = force[i] * maxTotForce / std::sqrt(totForceSq);
+        force[i] = std::sqrt(totForceSq) < 0.01 ? 0 : force[i] * maxTotForce / std::sqrt(totForceSq);
         // calculate acceleration
         accel[i] = (force[i] - gravForce[i]) / mass;
     }
 
-    // update velocity
+    // update position
+    for(int i = 0; i < 3; ++i) 
+    {
+        sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] + 0.5 * accel[i];
+    }
+
+    // calculate velocity
     for(int i = 0; i < 3; ++i) 
     {
         sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i];
@@ -291,24 +282,11 @@ void calculateUAVsLocation(int rank)
     }
     // bounding the velocities
     int maxTotVel = std::min(2.0, std::max(-2.0, std::sqrt(totVelSq)));
+    // update velocities
     for(int i = 0; i < 3; ++i) 
     {
-        // update velocity
-        sendBuffer[i + 3] = sendBuffer[i + 3] * maxTotVel / std::sqrt(totVelSq);
+        sendBuffer[i + 3] = std::sqrt(totVelSq) < 0.01 ? 0 : sendBuffer[i + 3] * maxTotVel / std::sqrt(totVelSq);
     }
-
-    // update position
-    for(int i = 0; i < 3; ++i) 
-    {
-        accel[i] = sendBuffer[i + 3] - prevVel[i];
-        sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] + 0.5 * accel[i];
-    }
-        // std::cout << " --######## mpi " << rank << " #############---" << std::endl;
-        // for (int i = 0; i < 6; ++i)
-        // {
-        //     std::cout << sendBuffer[i] << " ";
-        // }
-        // std::cout << std::endl;
 }
 
 void initUAVLocation(int rank)
@@ -334,7 +312,7 @@ void mainOpenGL(int argc, char**argv)
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowPosition(100, 100);
+    glutInitWindowPosition(900, 100);
     glutInitWindowSize(800, 800);
     glutCreateWindow("Super Bowl half-time Show");
     init();
