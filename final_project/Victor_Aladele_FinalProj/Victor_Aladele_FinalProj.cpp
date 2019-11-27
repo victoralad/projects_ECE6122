@@ -65,13 +65,13 @@ BMP inBitmap;
 // Send location and velocity vector in each direction
 const int sendSize = 6; // x, y, z, vx, vy, vz
 const int recvSize = 16 * 6; // (Main task + 15 UAVs) * sendSize
-double recvbuffer[recvSize] = {0};
+double recvBuffer[recvSize] = {0};
 double sendBuffer[sendSize] = {0};
 double accel[3] = {0};
 double force[3] = {0};
 double gravForce[3] = {0, 0, gravity};
-double kP[3] = {10, 10, 20}; // position control gain
-double kV[3] = {2, 2, 5}; // velocity control gain
+double kP[3] = {0.5, 0.5, 0.8}; // position control gain
+double kV[3] = {0.5, 0.5, 0.5}; // velocity control gain
 double goal[3] = {0, 0, 10}; // target position
 
 void init()
@@ -171,15 +171,21 @@ void displayFootballField()
 void drawUAVs()
 {
     glColor3f(1.0, 0.0, 0.0);
+    int rankID = 1;
+    std::cout << " -------drawUAVs --------" << std::endl;
     for (float i = 0; i <= width; i+= width / 2)
     {
         for (float j = 9.144; j <= length; j+= (length - 18.288) / 4)
         {
+            std::cout << recvBuffer[sendSize * rankID + 5] << " ";
             glPushMatrix();
-                glTranslatef(j + bounds, i + bounds, 0);
+                glTranslatef(j + bounds, i + bounds, recvBuffer[sendSize * rankID + 2]);
                 glutSolidCone(1, 2.0, 20, 20);
             glPopMatrix();
+            
+            rankID++;
         }
+        std::cout << std::endl;
     }
 }
 
@@ -211,7 +217,17 @@ void renderScene()
 
     glutSwapBuffers(); // Make it all visible
 
-    MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvbuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
+
+    // std::cout << " --######## mpi #############---" << std::endl;
+    // for (int rankID = 1; rankID < 16; ++rankID) 
+    // {
+    //     for (int i = 0; i < 6; ++i)
+    //     {
+    //         std::cout << recvBuffer[6 * rankID + i] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
 }
 
 void update()
@@ -251,25 +267,24 @@ void calculateUAVsLocation(int rank)
     {
         // calculate force
         force[i] = kP[i] * (goal[i] - sendBuffer[i]) - kV[i] * sendBuffer[i + 3];
+        force[i] = std::min(20.0, std::max(-20.0, force[i]));
 
         // calculate acceleration
         accel[i] = (force[i] + gravForce[i]) / mass;
 
         // update velocity
-        sendBuffer[i + 3] = recvbuffer[16 * rank + i + 3] + accel[i];
+        sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i];
 
         // update position
-        sendBuffer[i] = recvbuffer[16 * rank + i] + sendBuffer[i + 3] + 0.5 * accel[i];
-    }
-}
+        sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] + 0.5 * accel[i];
 
-//----------------------------------------------------------------------
-// mainOpenGL  - standard GLUT initializations and callbacks
-//----------------------------------------------------------------------
-void timer(int id)
-{
-    glutPostRedisplay();
-    glutTimerFunc(100, timer, 0);
+        // std::cout << " --######## mpi " << rank << " #############---" << std::endl;
+        // for (int i = 0; i < 6; ++i)
+        // {
+        //     std::cout << sendBuffer[i] << " ";
+        // }
+        // std::cout << std::endl;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -340,8 +355,9 @@ int main(int argc, char**argv)
         for (int i = 0; i < 600 ; ++i)
         {
             calculateUAVsLocation(rank); 
-            MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvbuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
         }
     }
-    return 0;
+    MPI_Finalize();
+    // return 0;
 }
