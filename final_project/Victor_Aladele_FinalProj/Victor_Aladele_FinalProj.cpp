@@ -75,6 +75,7 @@ double kV[3] = {0.5, 0.5, 0.5}; // velocity control gain
 double goal[3] = {length / 2, width / 2, 50}; // target position
 double distToSphereSq = 0;
 bool startOrbit = false;
+double timeStep = 0.1;
 
 void init()
 {
@@ -281,13 +282,13 @@ void calculateUAVsLocation(int rank)
         // update position
         for(int i = 0; i < 3; ++i) 
         {
-            sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] + 0.5 * accel[i];
+            sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] * timeStep + 0.5 * accel[i] * timeStep * timeStep;
         }
 
         // calculate velocity
         for(int i = 0; i < 3; ++i) 
         {
-            sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i];
+            sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i] * timeStep;
             totVelSq += sendBuffer[i + 3] * sendBuffer[i + 3];
 
         }
@@ -302,12 +303,12 @@ void calculateUAVsLocation(int rank)
     else
     {
         startOrbit = true;
-        for (int i = 0; i < 3; ++i)
-        {
-            std::cout << rank << " " << sendBuffer[i] << " " << goal[i] - sendBuffer[i] << std::endl;
-        } 
-        std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
-        std::cout << std::endl;
+        // for (int i = 0; i < 3; ++i)
+        // {
+        //     std::cout << rank << " " << sendBuffer[i] << " " << goal[i] - sendBuffer[i] << std::endl;
+        // } 
+        // std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
+        // std::cout << std::endl;
     }
     
 }
