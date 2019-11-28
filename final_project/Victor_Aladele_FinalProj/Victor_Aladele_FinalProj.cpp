@@ -75,7 +75,7 @@ double kV[3] = {0.5, 0.5, 0.5}; // velocity control gain
 double goal[3] = {length / 2, width / 2, 50}; // target position
 double distToSphereSq = 0;
 bool startOrbit = false;
-double timeStep = 0.1;
+double timeStep = 0.5;
 
 void init()
 {
