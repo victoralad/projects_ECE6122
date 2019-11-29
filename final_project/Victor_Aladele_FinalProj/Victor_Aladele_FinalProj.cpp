@@ -37,6 +37,10 @@ Description:
 float angle = 0.0; // initial orientation of the chessboard
 float length = 110.0, width = 49.0;
 float bounds = 2.0;
+float colorValues[] = {1.0, 0.0, 0.0};
+int timeStep = 0;
+bool decrease = true;
+int count = 0;
 
 // Camera position
 float eyeX = length / 2, eyeY = -width / 0.5, eyeZ = 100; // initially 5 units south of origin
@@ -69,13 +73,13 @@ double recvBuffer[recvSize] = {0};
 double sendBuffer[sendSize] = {0};
 double accel[3] = {0};
 double force[3] = {0};
-double gravForce[3] = {0, 0, gravity};
-double kP[3] = {0.1, 0.1, 0.1}; // position control gain
-double kV[3] = {0.5, 0.5, 0.5}; // velocity control gain
-double goal[3] = {length / 2, width / 2, 50}; // target position
+double gravForce[] = {0, 0, gravity};
+double kP[] = {0.1, 0.1, 0.1}; // position control gain
+double kV[] = {0.5, 0.5, 0.5}; // velocity control gain
+double goal[] = {length / 2, width / 2, 50}; // target position
 double distToSphereSq = 0;
 bool startOrbit = false;
-double timeStep = 0.5;
+double deltaTime = 0.5;
 
 void init()
 {
@@ -173,7 +177,29 @@ void displayFootballField()
 
 void drawUAVs()
 {
-    glColor3f(1.0, 0.0, 0.0);
+    // timeStep++;
+    // colorValues[0] = (191.5 + 63.5 * cos(2 * M_PI * timeStep / 255))/254;
+    if (decrease)
+    {
+        timeStep--;
+        if (colorValues[0] <= 127.0 / 255.0)
+        {
+            decrease = false;
+        }
+    }
+    else
+    {
+        timeStep++;
+        if (colorValues[0] >= 254.0 / 255)
+        {
+            decrease = true;
+        }
+    }
+
+    colorValues[0] = (255.0 + timeStep) / 255;
+    
+    std::cout << timeStep << " " << colorValues[0] << std::endl;
+    glColor3f(colorValues[0], colorValues[1], colorValues[2]);
     // std::cout << " -------height of UAVs --------" << std::endl;
     for (int rank = 1; rank < 16; ++rank)
     {
@@ -250,6 +276,12 @@ void processNormalKeys(unsigned char key, int xx, int yy)
 // update the state of each UAV
 void calculateUAVsLocation(int rank)
 {
+    
+    if (rank == 2)
+    {
+        count++;
+        std::cout << "count: " << count << std::endl;
+    }
     int totForceSq = 0, totVelSq = 0;
     distToSphereSq = 0;
     for (int i = 0; i < 3; ++i)
@@ -282,13 +314,13 @@ void calculateUAVsLocation(int rank)
         // update position
         for(int i = 0; i < 3; ++i) 
         {
-            sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] * timeStep + 0.5 * accel[i] * timeStep * timeStep;
+            sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] * deltaTime + 0.5 * accel[i] * deltaTime * deltaTime;
         }
 
         // calculate velocity
         for(int i = 0; i < 3; ++i) 
         {
-            sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i] * timeStep;
+            sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i] * deltaTime;
             totVelSq += sendBuffer[i + 3] * sendBuffer[i + 3];
 
         }
