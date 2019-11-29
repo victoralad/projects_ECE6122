@@ -38,7 +38,7 @@ float angle = 0.0; // initial orientation of the chessboard
 float length = 110.0, width = 49.0;
 float bounds = 2.0;
 float colorValues[] = {1.0, 0.0, 0.0};
-int timeStep = 0;
+int timeStep = 255;
 bool decrease = true;
 int count = 0;
 
@@ -177,12 +177,14 @@ void displayFootballField()
 
 void drawUAVs()
 {
-    // timeStep++;
-    // colorValues[0] = (191.5 + 63.5 * cos(2 * M_PI * timeStep / 255))/254;
+    // update color values
+    colorValues[0] = timeStep / 255.0;
+    
+    // use the if-else statement below to cycle between 128 and 255
     if (decrease)
     {
         timeStep--;
-        if (colorValues[0] <= 127.0 / 255.0)
+        if (colorValues[0] <= 130.0 / 255)
         {
             decrease = false;
         }
@@ -196,9 +198,6 @@ void drawUAVs()
         }
     }
 
-    colorValues[0] = (255.0 + timeStep) / 255;
-    
-    std::cout << timeStep << " " << colorValues[0] << std::endl;
     glColor3f(colorValues[0], colorValues[1], colorValues[2]);
     // std::cout << " -------height of UAVs --------" << std::endl;
     for (int rank = 1; rank < 16; ++rank)
@@ -276,12 +275,6 @@ void processNormalKeys(unsigned char key, int xx, int yy)
 // update the state of each UAV
 void calculateUAVsLocation(int rank)
 {
-    
-    if (rank == 2)
-    {
-        count++;
-        std::cout << "count: " << count << std::endl;
-    }
     int totForceSq = 0, totVelSq = 0;
     distToSphereSq = 0;
     for (int i = 0; i < 3; ++i)
@@ -422,7 +415,7 @@ int main(int argc, char**argv)
 
         // Sleep for 5 seconds
         std::this_thread::sleep_for(std::chrono::seconds(5));
-        for (int i = 0; i < 600 ; ++i)
+        for (int i = 0; i < 700 ; ++i)
         {
             calculateUAVsLocation(rank); 
             MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
