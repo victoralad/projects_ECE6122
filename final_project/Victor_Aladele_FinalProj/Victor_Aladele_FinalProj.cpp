@@ -82,13 +82,8 @@ double distToSphereSq = 0;
 bool startOrbit = false;
 bool rotateSphere = true;
 double deltaTime = 0.5;
-int arrivedSphere = 0;
-int recvArrivedSphere[16] = {0};
-double sphere[] = {0.0, 0.0, 0.0};
 int rotAngle = 0;
 double radius = 10.0;
-double rotBuffer[6] = {0.0};
-double recvRotBuffer[16 * 6] = {0.0};
 
 void init()
 {
@@ -163,6 +158,7 @@ void changeSize(int w, int h)
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
 
+// draw the football field with just the the texture
 void displayFootballField()
 {
     glColor3f(0.9, 0.9, 0.9);
@@ -184,7 +180,7 @@ void displayFootballField()
     glBindTexture(GL_TEXTURE_2D,0);
 }
 
-void drawUAVs()
+void updateUAVColor()
 {
     // update color values
     colorValues[0] = timeStep / 255.0;
@@ -206,35 +202,17 @@ void drawUAVs()
             decrease = true;
         }
     }
+}
 
-    rotateSphere = true;
-    for (int i = 1; i < 16; ++i)
-    {
-        if (recvArrivedSphere[i] == 0)
-        {
-            rotateSphere = false;
-            break;
-        }
-    }
+void drawUAVs()
+{
+    updateUAVColor();
 
-    // std::cout << " -------height of UAVs --------" << std::endl;
     glColor3f(colorValues[0], colorValues[1], colorValues[2]);
     for (int rank = 1; rank < 16; ++rank)
     {
-        // std::cout << recvBuffer[sendSize * rank + 2] << " ";
         glPushMatrix();
             glTranslatef(recvBuffer[sendSize * rank], recvBuffer[sendSize * rank + 1], recvBuffer[sendSize * rank + 2]);
-            // if (rotateSphere)
-            // {
-            //     std::cout << "yayyyyyyyyyyyyyyyyyyyyyyyyyyyyy!!!!" << std::endl;
-
-            //     double transX = recvRotBuffer[sendSize * rank];
-            //     double transY = recvRotBuffer[sendSize * rank + 1];
-            //     double transZ = recvRotBuffer[sendSize * rank + 2];
-
-            //     glTranslatef(transX, transY, transZ);
-                    
-            // }
             glutSolidCone(1, 2.0, 20, 20);
         glPopMatrix();
     }
@@ -275,10 +253,9 @@ void renderScene()
     glutSwapBuffers(); // Make it all visible
 
     MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
-    MPI_Allgather(&arrivedSphere, 1, MPI_INT, recvArrivedSphere, 1, MPI_INT, MPI_COMM_WORLD);
-    MPI_Allgather(rotBuffer, sendSize, MPI_DOUBLE, recvRotBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
+// debug function to move camera view around
 void update()
 {
     if (deltaMoveX)
@@ -298,7 +275,7 @@ void update()
     }
 }
 
-// debug function to move field around
+// debug function to move camera view around
 void processNormalKeys(unsigned char key, int xx, int yy)
 {
     switch (key)
@@ -322,32 +299,31 @@ void calculateUAVsLocation(int rank)
     distToSphereSq = 0;
     for (int i = 0; i < 3; ++i)
     {
+        goal[i] = 0; goal[2] = 50;
         distToSphereSq += (goal[i] - sendBuffer[i]) * (goal[i] - sendBuffer[i]);
     } 
-    std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
+    // std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
 
     if (distToSphereSq < radius * radius)
     { 
         startOrbit = true;
     }
 
+    // change goal and gain values when all UAVs have reached surface of sphere
     if (startOrbit)
     {
-        arrivedSphere = 1;
         rotAngle++;
         rotAngle %= 61;
-        // std::cout << "yoooo" << std::endl;
 
         goal[0] = radius * cos(2 * M_PI * rotAngle / 60);
         goal[1] = -radius * sin(2 * M_PI * rotAngle / 60);
         goal[2] = rank + 50 - radius;
-        //  std::cout << rotBuffer[0] << " " << rotBuffer[1] << " " << rotBuffer[1] << std::endl;
+
         for (int i = 0; i < 3; ++i)
         {
             kP[i] = 0.08 * rank;
             kV[i] = 0.12 * rank;
         }
-        deltaTime = 1.0;
     }
     // update force
     for(int i = 0; i < 3; ++i) 
@@ -480,8 +456,6 @@ int main(int argc, char**argv)
         {
             calculateUAVsLocation(rank); 
             MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
-            MPI_Allgather(&arrivedSphere, 1, MPI_INT, recvArrivedSphere, 1, MPI_INT, MPI_COMM_WORLD);
-            MPI_Allgather(rotBuffer, sendSize, MPI_DOUBLE, recvRotBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
         }
     }
     MPI_Finalize();
