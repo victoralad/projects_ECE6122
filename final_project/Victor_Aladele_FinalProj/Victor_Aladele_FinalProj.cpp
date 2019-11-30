@@ -76,10 +76,15 @@ double force[3] = {0};
 double gravForce[] = {0, 0, gravity};
 double kP[] = {0.1, 0.1, 0.1}; // position control gain
 double kV[] = {0.5, 0.5, 0.5}; // velocity control gain
-double goal[] = {length / 2, width / 2, 50}; // target position
+double goal[] = {length / 2, width / 2, 50.0}; // target position
 double distToSphereSq = 0;
 bool startOrbit = false;
+bool rotateSphere = true;
 double deltaTime = 0.5;
+int arrivedSphere = 0;
+int recvArrivedSphere[16] = {0};
+double sphere[] = {0.0, 0.0, 0.0};
+double rotAngle = 10.0;
 
 void init()
 {
@@ -198,17 +203,45 @@ void drawUAVs()
         }
     }
 
-    glColor3f(colorValues[0], colorValues[1], colorValues[2]);
+    rotateSphere = true;
+    for (int i = 1; i < 16; ++i)
+    {
+        if (recvArrivedSphere[i] == 0)
+        {
+            rotateSphere = false;
+            break;
+        }
+    }
+
     // std::cout << " -------height of UAVs --------" << std::endl;
+    glColor3f(colorValues[0], colorValues[1], colorValues[2]);
     for (int rank = 1; rank < 16; ++rank)
     {
         // std::cout << recvBuffer[sendSize * rank + 2] << " ";
         glPushMatrix();
             glTranslatef(bounds + recvBuffer[sendSize * rank], bounds + recvBuffer[sendSize * rank + 1], recvBuffer[sendSize * rank + 2]);
+            if (rotateSphere)
+            {
+                // std::cout << "yay!!!!" << std::endl;
+                rotAngle++;
+                double transX = goal[0] - recvBuffer[sendSize * rank];
+                double transY = goal[1] - recvBuffer[sendSize * rank + 1];
+                double transZ = goal[2] - recvBuffer[sendSize * rank + 2];
+
+                // glPushMatrix();
+                //     glTranslatef(transX, transY, 0);
+                //     glRotatef(rotAngle, 0.0, 1.0, 1.0); // virtual sphere
+                //     glTranslatef(-transX, -transY, 0);
+                // glPopMatrix();
+            }
             glutSolidCone(1, 2.0, 20, 20);
         glPopMatrix();
     }
-    // std::cout << std::endl;
+
+    glPushMatrix();
+        glTranslatef(bounds + goal[0], bounds + goal[1], goal[2]);
+        glutWireSphere(10, 9, 9);
+    glPopMatrix();
 }
 
 //----------------------------------------------------------------------
@@ -240,7 +273,7 @@ void renderScene()
     glutSwapBuffers(); // Make it all visible
 
     MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
-
+    MPI_Allgather(&arrivedSphere, 1, MPI_INT, recvArrivedSphere, 1, MPI_INT, MPI_COMM_WORLD);
 }
 
 void update()
@@ -280,13 +313,10 @@ void calculateUAVsLocation(int rank)
     for (int i = 0; i < 3; ++i)
     {
         distToSphereSq += (goal[i] - sendBuffer[i]) * (goal[i] - sendBuffer[i]);
-        // std::cout << rank << " " << sendBuffer[i] << " " << goal[i] - sendBuffer[i] << std::endl;
     } 
     // std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
-    // std::cout << std::endl;
     if (distToSphereSq > 100 && startOrbit == false)
     { 
-        // std::cout << "hey" << std::endl;
         // update force
         for(int i = 0; i < 3; ++i) 
         {
@@ -328,12 +358,7 @@ void calculateUAVsLocation(int rank)
     else
     {
         startOrbit = true;
-        // for (int i = 0; i < 3; ++i)
-        // {
-        //     std::cout << rank << " " << sendBuffer[i] << " " << goal[i] - sendBuffer[i] << std::endl;
-        // } 
-        // std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
-        // std::cout << std::endl;
+        arrivedSphere = 1;
     }
     
 }
@@ -419,6 +444,7 @@ int main(int argc, char**argv)
         {
             calculateUAVsLocation(rank); 
             MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgather(&arrivedSphere, 1, MPI_INT, recvArrivedSphere, 1, MPI_INT, MPI_COMM_WORLD);
         }
     }
     MPI_Finalize();
