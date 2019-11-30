@@ -1,7 +1,7 @@
 /*
 Author: Victor Aladele
 Class: ECE6122
-Last Date Modified: Nov 27, 2019
+Last Date Modified: Nov 30, 2019
 Description:
     3D simulation of a half time UAV show using MPI and OpenGL.
     The UAVs are red in color and spherical in shape. 
@@ -224,17 +224,17 @@ void drawUAVs()
         // std::cout << recvBuffer[sendSize * rank + 2] << " ";
         glPushMatrix();
             glTranslatef(recvBuffer[sendSize * rank], recvBuffer[sendSize * rank + 1], recvBuffer[sendSize * rank + 2]);
-            if (rotateSphere)
-            {
-                std::cout << "yayyyyyyyyyyyyyyyyyyyyyyyyyyyyy!!!!" << std::endl;
+            // if (rotateSphere)
+            // {
+            //     std::cout << "yayyyyyyyyyyyyyyyyyyyyyyyyyyyyy!!!!" << std::endl;
 
-                double transX = recvRotBuffer[sendSize * rank];
-                double transY = recvRotBuffer[sendSize * rank + 1];
-                double transZ = recvRotBuffer[sendSize * rank + 2];
+            //     double transX = recvRotBuffer[sendSize * rank];
+            //     double transY = recvRotBuffer[sendSize * rank + 1];
+            //     double transZ = recvRotBuffer[sendSize * rank + 2];
 
-                glTranslatef(transX, transY, transZ);
+            //     glTranslatef(transX, transY, transZ);
                     
-            }
+            // }
             glutSolidCone(1, 2.0, 20, 20);
         glPopMatrix();
     }
@@ -372,14 +372,14 @@ void calculateUAVsLocation(int rank)
         rotAngle++;
         rotAngle %= 61;
 
-        rotBuffer[0] = radius * cos(2 * M_PI * rotAngle / 60);
-        rotBuffer[1] = -radius * sin(2 * M_PI * rotAngle / 60);
+        sendBuffer[0] = radius * cos(2 * M_PI * rotAngle / 60);
+        sendBuffer[1] = -radius * sin(2 * M_PI * rotAngle / 60);
         // rotBuffer[2] = 0.0;
 
         // rotBuffer[1] = rotBuffer[1] * cos((rank - 1) * 12) - rotBuffer[2] * sin((rank - 1) * 12);
         // rotBuffer[2] = rotBuffer[0] * sin((rank - 1) * 12) + rotBuffer[0] * cos((rank - 1) * 12);
         
-        rotBuffer[2] = rank; //rotBuffer[0] * rotBuffer[0] + rotBuffer[1] * rotBuffer[1];
+        sendBuffer[2] = rank + goal[2] - radius; //rotBuffer[0] * rotBuffer[0] + rotBuffer[1] * rotBuffer[1];
         //  std::cout << rotBuffer[0] << " " << rotBuffer[1] << " " << rotBuffer[1] << std::endl;
 
     }
@@ -419,8 +419,8 @@ void mainOpenGL(int argc, char**argv)
 {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA);
-    glutInitWindowPosition(900, 100);
-    glutInitWindowSize(800, 800);
+    glutInitWindowPosition(600, 100);
+    glutInitWindowSize(1200, 1200);
     glutCreateWindow("Super Bowl half-time Show");
     init();
 
