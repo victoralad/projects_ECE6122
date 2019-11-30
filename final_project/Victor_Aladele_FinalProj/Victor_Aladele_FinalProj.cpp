@@ -84,7 +84,10 @@ double deltaTime = 0.5;
 int arrivedSphere = 0;
 int recvArrivedSphere[16] = {0};
 double sphere[] = {0.0, 0.0, 0.0};
-double rotAngle = 10.0;
+int rotAngle = 0;
+double radius = 10.0;
+double rotBuffer[6] = {0.0};
+double recvRotBuffer[16 * 6] = {0.0};
 
 void init()
 {
@@ -220,20 +223,20 @@ void drawUAVs()
         // std::cout << recvBuffer[sendSize * rank + 2] << " ";
         glPushMatrix();
             glTranslatef(bounds + recvBuffer[sendSize * rank], bounds + recvBuffer[sendSize * rank + 1], recvBuffer[sendSize * rank + 2]);
-            if (rotateSphere)
-            {
+            // if (rotateSphere)
+            // {
                 // std::cout << "yay!!!!" << std::endl;
-                rotAngle++;
-                double transX = goal[0] - recvBuffer[sendSize * rank];
-                double transY = goal[1] - recvBuffer[sendSize * rank + 1];
-                double transZ = goal[2] - recvBuffer[sendSize * rank + 2];
+                // double transX = goal[0] - recvBuffer[sendSize * rank];
+                // double transY = goal[1] - recvBuffer[sendSize * rank + 1];
+                // double transZ = goal[2] - recvBuffer[sendSize * rank + 2];
 
-                // glPushMatrix();
-                //     glTranslatef(transX, transY, 0);
-                //     glRotatef(rotAngle, 0.0, 1.0, 1.0); // virtual sphere
-                //     glTranslatef(-transX, -transY, 0);
-                // glPopMatrix();
-            }
+                double transX = recvRotBuffer[sendSize * rank];
+                double transY = recvRotBuffer[sendSize * rank + 1];
+                double transZ = recvRotBuffer[sendSize * rank + 2];
+
+                glTranslatef(transX, transY, 0);
+                    
+            // }
             glutSolidCone(1, 2.0, 20, 20);
         glPopMatrix();
     }
@@ -274,6 +277,7 @@ void renderScene()
 
     MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
     MPI_Allgather(&arrivedSphere, 1, MPI_INT, recvArrivedSphere, 1, MPI_INT, MPI_COMM_WORLD);
+    MPI_Allgather(rotBuffer, sendSize, MPI_DOUBLE, recvRotBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
 void update()
@@ -315,7 +319,7 @@ void calculateUAVsLocation(int rank)
         distToSphereSq += (goal[i] - sendBuffer[i]) * (goal[i] - sendBuffer[i]);
     } 
     // std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
-    if (distToSphereSq > 100 && startOrbit == false)
+    if (distToSphereSq > radius * radius && startOrbit == false)
     { 
         // update force
         for(int i = 0; i < 3; ++i) 
@@ -359,6 +363,9 @@ void calculateUAVsLocation(int rank)
     {
         startOrbit = true;
         arrivedSphere = 1;
+        rotAngle %= 61;
+        rotBuffer[2] = radius * cos(2 * M_PI * rotAngle / 60);
+        rotBuffer[0] = -radius * sin(2 * M_PI * rotAngle / 60);
     }
     
 }
@@ -445,6 +452,7 @@ int main(int argc, char**argv)
             calculateUAVsLocation(rank); 
             MPI_Allgather(sendBuffer, sendSize, MPI_DOUBLE, recvBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
             MPI_Allgather(&arrivedSphere, 1, MPI_INT, recvArrivedSphere, 1, MPI_INT, MPI_COMM_WORLD);
+            MPI_Allgather(rotBuffer, sendSize, MPI_DOUBLE, recvRotBuffer, sendSize, MPI_DOUBLE, MPI_COMM_WORLD);
         }
     }
     MPI_Finalize();
