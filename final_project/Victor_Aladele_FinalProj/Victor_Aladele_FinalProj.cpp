@@ -224,28 +224,26 @@ void drawUAVs()
         // std::cout << recvBuffer[sendSize * rank + 2] << " ";
         glPushMatrix();
             glTranslatef(recvBuffer[sendSize * rank], recvBuffer[sendSize * rank + 1], recvBuffer[sendSize * rank + 2]);
-            // if (rotateSphere)
-            // {
-                // std::cout << "yay!!!!" << std::endl;
-                // double transX = goal[0] - recvBuffer[sendSize * rank];
-                // double transY = goal[1] - recvBuffer[sendSize * rank + 1];
-                // double transZ = goal[2] - recvBuffer[sendSize * rank + 2];
+            if (rotateSphere)
+            {
+                std::cout << "yayyyyyyyyyyyyyyyyyyyyyyyyyyyyy!!!!" << std::endl;
 
                 double transX = recvRotBuffer[sendSize * rank];
                 double transY = recvRotBuffer[sendSize * rank + 1];
                 double transZ = recvRotBuffer[sendSize * rank + 2];
 
-                glTranslatef(transX, transY, 0);
+                glTranslatef(transX, transY, transZ);
                     
-            // }
+            }
             glutSolidCone(1, 2.0, 20, 20);
         glPopMatrix();
     }
 
-    // glPushMatrix();
-    //     glTranslatef(bounds + goal[0], bounds + goal[1], goal[2]);
-    //     glutWireSphere(10, 9, 9);
-    // glPopMatrix();
+    glColor3f(0.0, 0.0, 1.0);
+    glPushMatrix();
+        glTranslatef(goal[0], goal[1], goal[2]);
+        glutWireSphere(10, 29, 29);
+    glPopMatrix();
 }
 
 //----------------------------------------------------------------------
@@ -288,6 +286,11 @@ void update()
         eyeX += deltaMoveX;
         deltaMoveX = 0.0;
     }
+    if (deltaMoveY)
+    {
+        eyeY += deltaMoveY;
+        deltaMoveY = 0.0;
+    }
     if (deltaMoveZ)
     {
         eyeZ += deltaMoveZ;
@@ -305,6 +308,8 @@ void processNormalKeys(unsigned char key, int xx, int yy)
         case 'Q' : exit(0); break;
         case '1' : deltaMoveX = 0.25; break;
         case '0' : deltaMoveX = -0.25; break;
+        case '4' : deltaMoveY = 0.25; break;
+        case '5' : deltaMoveY = -0.25; break;
         case 'u' : deltaMoveZ = 0.25; break;
         case 'd' : deltaMoveZ = -0.25; break;
     }
@@ -319,7 +324,7 @@ void calculateUAVsLocation(int rank)
     {
         distToSphereSq += (goal[i] - sendBuffer[i]) * (goal[i] - sendBuffer[i]);
     } 
-    // std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
+    std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
     if (distToSphereSq > radius * radius && startOrbit == false)
     { 
         // update force
@@ -364,9 +369,19 @@ void calculateUAVsLocation(int rank)
     {
         startOrbit = true;
         arrivedSphere = 1;
+        rotAngle++;
         rotAngle %= 61;
-        rotBuffer[2] = radius * cos(2 * M_PI * rotAngle / 60);
-        rotBuffer[0] = -radius * sin(2 * M_PI * rotAngle / 60);
+
+        rotBuffer[0] = radius * cos(2 * M_PI * rotAngle / 60);
+        rotBuffer[1] = -radius * sin(2 * M_PI * rotAngle / 60);
+        // rotBuffer[2] = 0.0;
+
+        // rotBuffer[1] = rotBuffer[1] * cos((rank - 1) * 12) - rotBuffer[2] * sin((rank - 1) * 12);
+        // rotBuffer[2] = rotBuffer[0] * sin((rank - 1) * 12) + rotBuffer[0] * cos((rank - 1) * 12);
+        
+        rotBuffer[2] = rank; //rotBuffer[0] * rotBuffer[0] + rotBuffer[1] * rotBuffer[1];
+        //  std::cout << rotBuffer[0] << " " << rotBuffer[1] << " " << rotBuffer[1] << std::endl;
+
     }
     
 }
