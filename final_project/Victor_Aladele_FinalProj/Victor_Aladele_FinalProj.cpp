@@ -325,65 +325,68 @@ void calculateUAVsLocation(int rank)
         distToSphereSq += (goal[i] - sendBuffer[i]) * (goal[i] - sendBuffer[i]);
     } 
     std::cout << rank << "   distToSphereSq:   " << distToSphereSq << std::endl;
-    if (distToSphereSq > radius * radius && startOrbit == false)
+
+    if (distToSphereSq < radius * radius)
     { 
-        // update force
-        for(int i = 0; i < 3; ++i) 
-        {
-            // calculate force
-            force[i] = kP[i] * (goal[i] - sendBuffer[i]) - kV[i] * sendBuffer[i + 3] + gravForce[i];
-            totForceSq += force[i] * force[i];
-        }
-        // bounding the forces
-        int maxTotForce = std::min(20.0, std::max(-20.0, std::sqrt(totForceSq)));
-        for(int i = 0; i < 3; ++i) 
-        {
-            // calculate force
-            force[i] = std::sqrt(totForceSq) < 0.01 ? 0 : force[i] * maxTotForce / std::sqrt(totForceSq);
-            // calculate acceleration
-            accel[i] = (force[i] - gravForce[i]) / mass;
-        }
-
-        // update position
-        for(int i = 0; i < 3; ++i) 
-        {
-            sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] * deltaTime + 0.5 * accel[i] * deltaTime * deltaTime;
-        }
-
-        // calculate velocity
-        for(int i = 0; i < 3; ++i) 
-        {
-            sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i] * deltaTime;
-            totVelSq += sendBuffer[i + 3] * sendBuffer[i + 3];
-
-        }
-        // bounding the velocities
-        int maxTotVel = std::min(2.0, std::max(-2.0, std::sqrt(totVelSq)));
-        // update velocities
-        for(int i = 0; i < 3; ++i) 
-        {
-            sendBuffer[i + 3] = std::sqrt(totVelSq) < 0.01 ? 0 : sendBuffer[i + 3] * maxTotVel / std::sqrt(totVelSq);
-        }
-    }
-    else
-    {
         startOrbit = true;
+    }
+
+    if (startOrbit)
+    {
         arrivedSphere = 1;
         rotAngle++;
         rotAngle %= 61;
+        // std::cout << "yoooo" << std::endl;
 
-        sendBuffer[0] = radius * cos(2 * M_PI * rotAngle / 60);
-        sendBuffer[1] = -radius * sin(2 * M_PI * rotAngle / 60);
-        // rotBuffer[2] = 0.0;
-
-        // rotBuffer[1] = rotBuffer[1] * cos((rank - 1) * 12) - rotBuffer[2] * sin((rank - 1) * 12);
-        // rotBuffer[2] = rotBuffer[0] * sin((rank - 1) * 12) + rotBuffer[0] * cos((rank - 1) * 12);
-        
-        sendBuffer[2] = rank + goal[2] - radius; //rotBuffer[0] * rotBuffer[0] + rotBuffer[1] * rotBuffer[1];
+        goal[0] = radius * cos(2 * M_PI * rotAngle / 60);
+        goal[1] = -radius * sin(2 * M_PI * rotAngle / 60);
+        goal[2] = rank + 50 - radius;
         //  std::cout << rotBuffer[0] << " " << rotBuffer[1] << " " << rotBuffer[1] << std::endl;
+        for (int i = 0; i < 3; ++i)
+        {
+            kP[i] = 0.08 * rank;
+            kV[i] = 0.12 * rank;
+        }
+        deltaTime = 1.0;
+    }
+    // update force
+    for(int i = 0; i < 3; ++i) 
+    {
+        // calculate force
+        force[i] = kP[i] * (goal[i] - sendBuffer[i]) - kV[i] * sendBuffer[i + 3] + gravForce[i];
+        totForceSq += force[i] * force[i];
+    }
+    // bounding the forces
+    int maxTotForce = std::min(20.0, std::max(-20.0, std::sqrt(totForceSq)));
+    for(int i = 0; i < 3; ++i) 
+    {
+        // calculate force
+        force[i] = std::sqrt(totForceSq) < 0.01 ? 0 : force[i] * maxTotForce / std::sqrt(totForceSq);
+        // calculate acceleration
+        accel[i] = (force[i] - gravForce[i]) / mass;
+    }
+
+    // update position
+    for(int i = 0; i < 3; ++i) 
+    {
+        sendBuffer[i] = sendBuffer[i] + sendBuffer[i + 3] * deltaTime + 0.5 * accel[i] * deltaTime * deltaTime;
+    }
+
+    // calculate velocity
+    for(int i = 0; i < 3; ++i) 
+    {
+        sendBuffer[i + 3] = sendBuffer[i + 3] + accel[i] * deltaTime;
+        totVelSq += sendBuffer[i + 3] * sendBuffer[i + 3];
 
     }
-    
+    // bounding the velocities
+    int maxTotVel = std::min(2.0, std::max(-2.0, std::sqrt(totVelSq)));
+    // update velocities
+    for(int i = 0; i < 3; ++i) 
+    {
+        sendBuffer[i + 3] = std::sqrt(totVelSq) < 0.01 ? 0 : sendBuffer[i + 3] * maxTotVel / std::sqrt(totVelSq);
+    }
+   
 }
 
 void initUAVLocation(int rank)
