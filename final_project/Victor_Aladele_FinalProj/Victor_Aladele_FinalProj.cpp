@@ -43,12 +43,13 @@ bool decrease = true;
 int count = 0;
 
 // Camera position
-float eyeX = length / 2, eyeY = -width / 0.5, eyeZ = 100; // initially 5 units south of origin
+float eyeX = length / 2, eyeY = 0.0, eyeZ = 80; // initially 5 units south of origin
+float deltaMoveX = 0.0;
 float deltaMoveY = 0.0; // initially camera doesn't move
 float deltaMoveZ = 0.0;
 
 // Camera direction
-float lx = length / 2, ly = width / 2, lz = 0.0; 
+float lx = 0, ly = 0, lz = 0.0; 
 
 // initialize lighting values and material properties
 GLfloat light0_ambient[] = {0.3, 0.3, 0.3, 1.0};
@@ -76,7 +77,7 @@ double force[3] = {0};
 double gravForce[] = {0, 0, gravity};
 double kP[] = {0.1, 0.1, 0.1}; // position control gain
 double kV[] = {0.5, 0.5, 0.5}; // velocity control gain
-double goal[] = {length / 2, width / 2, 50.0}; // target position
+double goal[] = {0.0, 0.0, 50.0}; // target position
 double distToSphereSq = 0;
 bool startOrbit = false;
 bool rotateSphere = true;
@@ -157,7 +158,7 @@ void changeSize(int w, int h)
     float ratio = ((float)w) / ((float)h); // window aspect ratio
     glMatrixMode(GL_PROJECTION); // projection matrix is active
     glLoadIdentity(); // reset the projection
-    gluPerspective(60.0, ratio, 0.1, 200.0); // perspective transformation
+    gluPerspective(80.0, ratio, 0.1, 200.0); // perspective transformation
     glMatrixMode(GL_MODELVIEW); // return to modelview mode
     glViewport(0, 0, w, h); // set viewport (drawing area) to entire window
 }
@@ -167,8 +168,8 @@ void displayFootballField()
     glColor3f(0.9, 0.9, 0.9);
     glBindTexture(GL_TEXTURE_2D, texture[0]);
     glPushMatrix();
-        glTranslatef(55 + bounds, 24.5 + bounds, 0);
-        glScalef(55 + 1.5*bounds, 24.5 + 1.5*bounds, 0);
+        glRotatef(90, 0.0, 0.0, 1.0);
+        glScalef(length / 2 + 1.5*bounds, width / 2 + 1.5*bounds, 0);
         glBegin(GL_QUADS);
             glTexCoord2f(1, 1);
             glVertex3f(1.0f, 1.0f, 0.0f);
@@ -222,7 +223,7 @@ void drawUAVs()
     {
         // std::cout << recvBuffer[sendSize * rank + 2] << " ";
         glPushMatrix();
-            glTranslatef(bounds + recvBuffer[sendSize * rank], bounds + recvBuffer[sendSize * rank + 1], recvBuffer[sendSize * rank + 2]);
+            glTranslatef(recvBuffer[sendSize * rank], recvBuffer[sendSize * rank + 1], recvBuffer[sendSize * rank + 2]);
             // if (rotateSphere)
             // {
                 // std::cout << "yay!!!!" << std::endl;
@@ -241,10 +242,10 @@ void drawUAVs()
         glPopMatrix();
     }
 
-    glPushMatrix();
-        glTranslatef(bounds + goal[0], bounds + goal[1], goal[2]);
-        glutWireSphere(10, 9, 9);
-    glPopMatrix();
+    // glPushMatrix();
+    //     glTranslatef(bounds + goal[0], bounds + goal[1], goal[2]);
+    //     glutWireSphere(10, 9, 9);
+    // glPopMatrix();
 }
 
 //----------------------------------------------------------------------
@@ -282,10 +283,10 @@ void renderScene()
 
 void update()
 {
-    if (deltaMoveY)
+    if (deltaMoveX)
     {
-        eyeY += deltaMoveY;
-        deltaMoveY = 0.0;
+        eyeX += deltaMoveX;
+        deltaMoveX = 0.0;
     }
     if (deltaMoveZ)
     {
@@ -302,8 +303,8 @@ void processNormalKeys(unsigned char key, int xx, int yy)
         case ESC : exit(0); break;
         case 'q' : exit(0); break;
         case 'Q' : exit(0); break;
-        case '1' : deltaMoveY = 0.25; break;
-        case '0' : deltaMoveY = -0.25; break;
+        case '1' : deltaMoveX = 0.25; break;
+        case '0' : deltaMoveX = -0.25; break;
         case 'u' : deltaMoveZ = 0.25; break;
         case 'd' : deltaMoveZ = -0.25; break;
     }
@@ -372,9 +373,19 @@ void calculateUAVsLocation(int rank)
 
 void initUAVLocation(int rank)
 {
-    sendBuffer[0] = 9.144 + ((rank - 1) % 5 * (length - 18.288)) / 4;
-    sendBuffer[1] = (rank - 1) / 5 * width / 2;
-    sendBuffer[2] = 0.0;
+    // arrange UAVs along x-axis
+    sendBuffer[1] = 9.144 + ((rank - 1) % 5 * (length - 18.288)) / 4 - length / 2;
+
+    //arrange UAVs along y-axis
+    int yPos = (rank - 1) / 5;
+    if (yPos == 0)
+    {
+        sendBuffer[0] = width / 2;
+    }
+    else if (yPos == 2) 
+    {
+        sendBuffer[0] = -width / 2;
+    }
 }
 
 //----------------------------------------------------------------------
